@@ -168,6 +168,7 @@ int app_yolo(){
     // test(Yolo::Type::V5, TRT::Mode::FP32, "yolov5x");
     // test(Yolo::Type::V5, TRT::Mode::FP32, "yolov5l");
     // test(Yolo::Type::V5, TRT::Mode::FP32, "yolov5m");
+    //->@codylcs:flow of yolov5 infer: tutorial\0.0tensorRT_Pro_comments\codylcs_imgs\tensorrt_cpp_yolo.drawio.png
     test(Yolo::Type::V5, TRT::Mode::FP32, "yolov5s");
 
     // test(Yolo::Type::V5, TRT::Mode::FP16, "yolov5x6");
