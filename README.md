@@ -17,7 +17,7 @@ https://github.com/shouxieai/tensorRT_Pro
 注释的形式任由各位发挥！！最简单的一句话就是为了让大家不专门花费精力做这件事情，我们注释的方法优先考虑自己即可，但是我们尽量避免改变希望的源码。这份代码也会与tensorRT_Pro官方repo保持同步更新。
 
 <div align = center>
-    <img src = 'tutorial/README_imgs/1.jpg' width = '100%'>
+    <img src = 'tutorial/README_imgs/1.jpg' width = '120%'>
 </div>
 <br><br><br>
 <div align = center>
@@ -28,3 +28,8 @@ https://github.com/shouxieai/tensorRT_Pro
 <div align = center>
     <img src = 'tutorial/README_imgs/3.jpg' width = '97%'>
 </div>
+
+## 目前已有的comments
+- tutorial by deeppeter(微信名) and 小菜鸡 (微信名)
+- simple_yolo by 致青春
+
