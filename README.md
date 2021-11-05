@@ -58,4 +58,7 @@ https://github.com/shouxieai/tensorRT_Pro
 bbbbbbbb 
 
 - 
+- awegawegaewgate_gitignore, 千万不要git push 大文件上到repo里面
+- 除非很特殊的情况！！！
+-awegja;ewlkgja;lwkjg;lakwejg
 
