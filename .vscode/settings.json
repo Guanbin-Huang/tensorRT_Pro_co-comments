@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "chrono": "cpp",
+        "limits": "cpp",
+        "valarray": "cpp",
+        "array": "cpp",
+        "bitset": "cpp",
+        "string_view": "cpp",
+        "initializer_list": "cpp",
+        "utility": "cpp",
+        "thread": "cpp"
+    }
+}
