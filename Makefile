@@ -1,4 +1,3 @@
-# 我去过英国
 cpp_srcs := $(shell find src -name "*.cpp")
 cpp_objs := $(cpp_srcs:.cpp=.o)
 cpp_objs := $(cpp_objs:src/%=objs/%)
@@ -205,4 +204,3 @@ clean :
 
 .PHONY : clean yolo alphapose fall debug
 
-# 我爱中华人民共和国
