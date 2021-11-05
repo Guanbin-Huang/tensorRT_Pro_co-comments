@@ -1,4 +1,4 @@
-
+# 我去过英国
 cpp_srcs := $(shell find src -name "*.cpp")
 cpp_objs := $(cpp_srcs:.cpp=.o)
 cpp_objs := $(cpp_objs:src/%=objs/%)

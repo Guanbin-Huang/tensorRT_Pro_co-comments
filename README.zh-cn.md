@@ -1,3 +1,4 @@
+我没去过美国
 我爱我的祖国
 阅读其他语言的README.md:[English](README.md), [简体中文](README.zh-cn.md).
 ## 最近的重要更新：
