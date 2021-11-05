@@ -55,4 +55,4 @@ https://github.com/shouxieai/tensorRT_Pro
 
 ## 注意事项：
 @peterhuang 
-- 我爱中国
+- 我特别爱中国
