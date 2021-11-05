@@ -1,5 +1,14 @@
 # tensorRT_Pro_comments
+你好呀！
 
+@Peter
+    hello world!!!!
+"""
+  @ zhao : 大家好！
+"""
+@Lacacy
+   晚上好，各位，准备洗洗睡了！
+"""
 
 @codylcs
    这是一个测试
@@ -46,4 +55,6 @@ https://github.com/shouxieai/tensorRT_Pro
 ## 注意事项：
 - 可以参考template_gitignore, 千万不要git push 大文件上到repo里面
 - 除非很特殊的情况！！！
+
+- 反正不要上传大文件
 
