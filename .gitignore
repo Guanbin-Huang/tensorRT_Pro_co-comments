@@ -1,0 +1,92 @@
+#
+tutorial/2.0CenterNet_from_torch_trt/0_to_1_python_to_cuda/cpp_cuda_centernet/src/tensorRT
+tutorial/2.0CenterNet_from_torch_trt/0_to_1_python_to_cuda/cpp_cuda_centernet/objs
+tutorial/2.0CenterNet_from_torch_trt/0_to_1_python_to_cuda/cpp_cuda_centernet/workspace/pro
+
+# compressed files
+*.tar.gz
+*.zip
+
+# temp tensor and data
+*.tensor
+*.data
+
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+/objs
+
+*.trtmodel
+*.onnx
+/workspace/pro
+/build
+/workspace/*.avi
+/workspace/.ipynb_checkpoints
+/workspace/*_result
+/workspace/face/library_draw
+/workspace/face/result
+/workspace/face/library/laq.jpg
+__pycache__
+/tools/process_so.sh
+/tools/proc2.sh
+/python/trtpy.egg-info
+/python/dist
+/python/build
+/workspace/formtest.ipynb
+/workspace/meta.json
+/.vs
+*.pyd
+*.zip
+*.pdb
+*.ilk
+*.lib
+*.exp
+
+/lean/cuda10.1
+/lean/cudnn8.2.2.26
+/lean/opencv3.4.6
+/lean/protobuf3.11.4
+/lean/TensorRT-8.0.1.6
+
+__pycache__
+
+!/workspace/wget.exe
+/workspace/*.mp4
+/workspace/single_inference
+/workspace/exp/tracker.final.mp4
+/workspace/perf.result.log
+/simple_yolo/workspace/pro
+/simple_yolo/objs
+/workspace/*.json
+/workspace/*.png

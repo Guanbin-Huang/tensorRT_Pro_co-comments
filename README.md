@@ -33,3 +33,6 @@ https://github.com/shouxieai/tensorRT_Pro
 - tutorial by deeppeter(微信名) and 小菜鸡 (微信名)
 - simple_yolo by 致青春
 
+## 注意事项：
+- 参考template_gitignore, 不要git push 大文件上来
+
