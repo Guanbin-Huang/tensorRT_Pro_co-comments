@@ -1,18 +1,5 @@
 # tensorRT_Pro_comments
-你好呀！
 
-@Peter
-    hello world!!!!
-"""
-  @ zhao : 大家好！
-"""
-@Lacacy
-   晚上好，各位，准备洗洗睡了！
-"""
-
-@codylcs
-   这是一个测试
-"""
 tensorRT_Pro:
 https://github.com/shouxieai/tensorRT_Pro
 
@@ -55,14 +42,5 @@ https://github.com/shouxieai/tensorRT_Pro
 
 ## 注意事项：
 @peterhuang 
-- 我特别爱中国
-
-@daslkfj
-// 锄禾日第十个当午
-// 汗滴第禾九下个土，
-// 谁盘中餐 第七个
-// 粒粒皆辛苦
-   哈哈哈哈啊哈哈哈哈哈
-   第四个
-   第五个
+不要上传大文件，.gitignore模板可参考temp_gitignore
 
