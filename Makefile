@@ -204,3 +204,5 @@ clean :
 	@rm -rf python/trtpy/libplugin_list.so
 
 .PHONY : clean yolo alphapose fall debug
+
+# 我爱中华人民共和国

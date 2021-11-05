@@ -1,6 +1,6 @@
 我没去过美国
-
-等等阅读其他语言的README.md:[English](README.md), [简体中文](README.zh-cn.md).
+我爱我的祖国
+阅读其他语言的README.md:[English](README.md), [简体中文](README.zh-cn.md).
 ## 最近的重要更新：
 - 关于CenterNet 从pytorch到tensorRT的模型导出到推理的中英文教程已更新，在tutorial/2.0
 - 🔥 [简单的YoloV5/YoloX实现已经发布，简单好使，高性能，只有2个文件哦，没有多余依赖](simple_yolo)
