@@ -59,7 +59,9 @@ namespace SimpleYolo{
             }                                  \
         }while(false)
 
-    /* 修改这个level来实现修改日志输出级别 */
+    
+
+    /* @致青春 修改这个level来实现修改日志输出级别 */
     #define CURRENT_LOG_LEVEL       LogLevel::Info
     #define INFOD(...)			__log_func(__FILE__, __LINE__, LogLevel::Debug, __VA_ARGS__)
     #define INFOV(...)			__log_func(__FILE__, __LINE__, LogLevel::Verbose, __VA_ARGS__)
@@ -79,7 +81,9 @@ namespace SimpleYolo{
         SwapRB        = 1
     };
 
-    /* 归一化操作，可以支持均值标准差，alpha beta，和swap RB */
+    
+
+    /* @致青春 归一化操作，可以支持均值标准差，alpha beta，和swap RB */
     struct Norm{
         float mean[3];
         float std[3];
@@ -122,7 +126,9 @@ namespace SimpleYolo{
         return Norm();
     }
 
-    /* 构造时设置当前gpuid，析构时修改为原来的gpuid */
+    
+
+    /* @致青春 构造时设置当前gpuid，析构时修改为原来的gpuid */
     class AutoDevice{
     public:
         AutoDevice(int device_id = 0){
@@ -252,9 +258,14 @@ namespace SimpleYolo{
         return path.substr(p, u - p);
     }
 
+    
+
+    /* @致青春 @致青春  遍历文件夹图片  */
     vector<string> glob_image_files(const string& directory){
 
-        /* 检索目录下的所有图像："*.jpg;*.png;*.bmp;*.jpeg;*.tiff" */
+        
+
+    /* @致青春 检索目录下的所有图像："*.jpg;*.png;*.bmp;*.jpeg;*.tiff" */
         vector<string> files, output;
         set<string> pattern_set{"jpg", "png", "bmp", "jpeg", "tiff"};
 
@@ -341,6 +352,9 @@ namespace SimpleYolo{
         *oy = matrix[3] * x + matrix[4] * y + matrix[5];
     }
 
+    
+
+    /* @致青春 @致青春  解码核函数 */
     static __global__ void decode_kernel(float* predict, int num_bboxes, int num_classes, float confidence_threshold, float* invert_affine_matrix, float* parray, int max_objects){  
 
         int position = blockDim.x * blockIdx.x + threadIdx.x;
@@ -444,7 +458,9 @@ namespace SimpleYolo{
         auto grid = grid_dims(num_bboxes);
         auto block = block_dims(num_bboxes);
 
-        /* 如果核函数有波浪线，没关系，他是正常的，你只是看不顺眼罢了 */
+        
+
+    /* @致青春 如果核函数有波浪线，没关系，他是正常的，你只是看不顺眼罢了 */
         checkCudaKernel(decode_kernel<<<grid, block, 0, stream>>>(predict, num_bboxes, num_classes, confidence_threshold, invert_affine_matrix, parray, max_objects));
 
         grid = grid_dims(max_objects);
@@ -452,6 +468,9 @@ namespace SimpleYolo{
         checkCudaKernel(fast_nms_kernel<<<grid, block, 0, stream>>>(parray, max_objects, nms_threshold));
     }
 
+    
+
+    /* @致青春  @致青春  数据预处理  */
     static __global__ void warp_affine_bilinear_and_normalize_plane_kernel(uint8_t* src, int src_line_size, int src_width, int src_height, float* dst, int dst_width, int dst_height, 
         uint8_t const_value_st, float* warp_affine_matrix_2_3, Norm norm, int edge){
 
@@ -556,29 +575,74 @@ namespace SimpleYolo{
 
 
     //////////////////////////////class MixMemory/////////////////////////////////////////////////
-    /* gpu/cpu内存管理
+    
+
+    /* @致青春 
+        gpu/cpu内存管理
         自动对gpu和cpu内存进行分配和释放
         这里的cpu使用的是pinned memory，当对gpu做内存复制时，性能比较好
         因为是cudaMallocHost分配的，因此他与cuda context有关联
+        
+        @致青春 
+            内存分配的重点在于，CPU和GPU可以互相copy和创建，通常情况下，创建一块内存，首先应该具备以下要求：
+            1. 知道指向内存的指针
+            2. 开辟内存块的大小
+            3. GPU内存的id号
+            4. 可以直接引用外部内存块
+            通过上面我们可以知道，设计类的出发点应该是需要定义几个变量，然后写方法分别实现我们想要的功能如cpu->gpu, gpu->cpu等等操作
+            中间要考虑内存的复用，内存copy的性能等细节，这里大神基本都注意到了值得学习
+            因此下面的MixMemory类，就需要着重观察私用成员变量：
+                            void* cpu_ = nullptr;                            
+                            size_t cpu_size_ = 0;
+                            bool owner_cpu_ = true;                   
+                            int device_id_ = 0;                       
+                            void* gpu_ = nullptr;                   
+                            size_t gpu_size_ = 0;
+                            bool owner_gpu_ = true;
+
+            通过观察私用成员变量的和成员方法可以很快理解MixMemory         
+
+
     */
+
+
     class MixMemory {
     public:
+        
+
+    /* @致青春  构造和析构函数 */
         MixMemory(int device_id = CURRENT_DEVICE_ID);
         MixMemory(void* cpu, size_t cpu_size, void* gpu, size_t gpu_size);
         virtual ~MixMemory();
+        
+        
+
+    /* @致青春  申请gpu内存和cpu内存 */
         void* gpu(size_t size);
         void* cpu(size_t size);
+        
+
+    /* @致青春  释放内存 */
         void release_gpu();
         void release_cpu();
         void release_all();
+        
 
+    /* @致青春  获取所用权 */
         inline bool owner_gpu() const{return owner_gpu_;}
         inline bool owner_cpu() const{return owner_cpu_;}
+        
 
+    /* @致青春  获取申请内存的大小 */
         inline size_t cpu_size() const{return cpu_size_;}
         inline size_t gpu_size() const{return gpu_size_;}
-        inline int device_id() const{return device_id_;}
+        
 
+    /* @致青春  获取设备id */
+        inline int device_id() const{return device_id_;}
+        
+
+    /* @致青春  获取GPU内存地址 */
         inline void* gpu() const { return gpu_; }
 
         // Pinned Memory
@@ -587,12 +651,27 @@ namespace SimpleYolo{
         void reference_data(void* cpu, size_t cpu_size, void* gpu, size_t gpu_size);
 
     private:
+        
+        
+
+    /* @致青春 cpu指针 */
         void* cpu_ = nullptr;
+        
+
+    /* @致青春 cpu申请空间大小 大小 */
         size_t cpu_size_ = 0;
         bool owner_cpu_ = true;
-        int device_id_ = 0;
+        
 
+    /* @致青春 GPU 0 */
+        int device_id_ = 0;
+        
+
+    /* @致青春 GPU指针 */
         void* gpu_ = nullptr;
+        
+
+    /* @致青春 GPU申请空间大小 */
         size_t gpu_size_ = 0;
         bool owner_gpu_ = true;
     };
@@ -600,12 +679,17 @@ namespace SimpleYolo{
     MixMemory::MixMemory(int device_id){
         device_id_ = get_device(device_id);
     }
+    
 
+    /* @致青春 传入CPU地址和GPU地址以及对应的大小对其进行初始化 */
     MixMemory::MixMemory(void* cpu, size_t cpu_size, void* gpu, size_t gpu_size){
         reference_data(cpu, cpu_size, gpu, gpu_size);		
     }
+    
 
+    /* @致青春 引用数据 */
     void MixMemory::reference_data(void* cpu, size_t cpu_size, void* gpu, size_t gpu_size){
+
         release_all();
         
         if(cpu == nullptr || cpu_size == 0){
@@ -618,11 +702,20 @@ namespace SimpleYolo{
             gpu_size = 0;
         }
 
+        
+
+    /* @致青春 把传入进来的参数进行赋值 */
         this->cpu_ = cpu;
         this->cpu_size_ = cpu_size;
         this->gpu_ = gpu;
         this->gpu_size_ = gpu_size;
 
+        
+
+    /* @致青春 下面两行代码有什么作用呢？ */
+        
+
+    /* @致青春 大神解释： 可以允许MixMemory引用一块内存，不属于自己管理，但是可以引用 */
         this->owner_cpu_ = !(cpu && cpu_size > 0);
         this->owner_gpu_ = !(gpu && gpu_size > 0);
         checkCudaRuntime(cudaGetDevice(&device_id_));
@@ -633,7 +726,11 @@ namespace SimpleYolo{
     }
 
     void* MixMemory::gpu(size_t size) {
+        
 
+    /* @致青春 这里判断需要开辟的空间size，和之前的开辟空间的size大小比较，如果小，则直接返回即可
+           如果大则需要重新开辟空间，先释放已分配的空间，然后开辟新空间，同时把新空间设置为0
+        */
         if (gpu_size_ < size) {
             release_gpu();
 
@@ -658,7 +755,9 @@ namespace SimpleYolo{
         }
         return cpu_;
     }
+    
 
+    /* @致青春 释放CPU资源 */
     void MixMemory::release_cpu() {
         if (cpu_) {
             if(owner_cpu_){
@@ -670,6 +769,9 @@ namespace SimpleYolo{
         cpu_size_ = 0;
     }
 
+    
+
+    /* @致青春 释放GPU资源 */
     void MixMemory::release_gpu() {
         if (gpu_) {
             if(owner_gpu_){
@@ -681,13 +783,18 @@ namespace SimpleYolo{
         gpu_size_ = 0;
     }
 
+    
+
+    /* @致青春 释放所以资源 */
     void MixMemory::release_all() {
         release_cpu();
         release_gpu();
     }
 
     /////////////////////////////////class Tensor////////////////////////////////////////////////
-    /* Tensor类，实现张量的管理
+    
+
+    /* @致青春 Tensor类，实现张量的管理
         由于NN多用张量，必须有个类进行管理才方便，实现内存自动分配，计算索引等等
         如果要调试，可以执行save_to_file，储存为文件后，在python中加载并查看
     */
@@ -701,7 +808,9 @@ namespace SimpleYolo{
     public:
         Tensor(const Tensor& other) = delete;
         Tensor& operator = (const Tensor& other) = delete;
+        
 
+    /* @致青春 构造和析构函数 */
         explicit Tensor(std::shared_ptr<MixMemory> data = nullptr, int device_id = CURRENT_DEVICE_ID);
         explicit Tensor(int n, int c, int h, int w, std::shared_ptr<MixMemory> data = nullptr, int device_id = CURRENT_DEVICE_ID);
         explicit Tensor(int ndims, const int* dims, std::shared_ptr<MixMemory> data = nullptr, int device_id = CURRENT_DEVICE_ID);
@@ -709,10 +818,18 @@ namespace SimpleYolo{
         virtual ~Tensor();
 
         int numel() const;
-        inline int ndims() const{return shape_.size();}
-        inline int size(int index)  const{return shape_[index];}
-        inline int shape(int index) const{return shape_[index];}
+        inline int ndims() const{return shape_.size();} 
 
+    /* @致青春 获取维度 */
+        inline int size(int index)  const{return shape_[index];} 
+
+    /* @致青春 获取某一维维度的大小 */
+        inline int shape(int index) const{return shape_[index];} 
+
+    /* @致青春 获取某一维维度的大小 */
+        
+
+    /* @致青春  获取维度的相关信息 */
         inline int batch()   const{return shape_[0];}
         inline int channel() const{return shape_[1];}
         inline int height()  const{return shape_[2];}
@@ -721,14 +838,23 @@ namespace SimpleYolo{
         inline const std::vector<int>& dims() const { return shape_; }
         inline int bytes()                    const { return bytes_; }
         inline int bytes(int start_axis)      const { return count(start_axis) * element_size(); }
+
+    /* @致青春 获取数据所占字节数 */
         inline int element_size()             const { return sizeof(float); }
-        inline DataHead head()                const { return head_; }
+        inline DataHead head()                const { return head_; } 
+
+    /* @致青春 判断是GPU数据还是cpu数据还是初始化 */
 
         std::shared_ptr<Tensor> clone() const;
-        Tensor& release();
-        Tensor& set_to(float value);
-        bool empty() const;
+        Tensor& release(); 
 
+    /* @致青春 释放资源 */
+        Tensor& set_to(float value);
+        bool empty() const; /* @致青春 判断数据是否为空 */
+
+        
+
+    /* @致青春 tensor的数据偏置索引 */
         template<typename ... _Args>
         int offset(int index, _Args ... index_args) const{
             const int index_array[] = {index, index_args...};
@@ -750,15 +876,28 @@ namespace SimpleYolo{
         int  count(int start_axis = 0) const;
         int device() const{return device_id_;}
 
+        
+
+    /* @致青春 把数据copy到GPU上或者copy到CPU上 */
         Tensor& to_gpu(bool copy=true);
         Tensor& to_cpu(bool copy=true);
+        
 
+    /* @致青春 把数据copy到GPU上或者copy到CPU上 */
         inline void* cpu() const { ((Tensor*)this)->to_cpu(); return data_->cpu(); }
         inline void* gpu() const { ((Tensor*)this)->to_gpu(); return data_->gpu(); }
         
+        
+
+    /* @致青春 创建模板进行泛化编程， */
         template<typename DType> inline const DType* cpu() const { return (DType*)cpu(); }
         template<typename DType> inline DType* cpu()             { return (DType*)cpu(); }
+        
 
+    /* @致青春 变长模板参数 ，具体可以访问 ：https://blog.csdn.net/zj510/article/details/36633603?spm=1001.2101.3001.6650.10&utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7Edefault-10.highlightwordscore&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7Edefault-10.highlightwordscore  */
+        
+
+    /* @致青春 这里应是数据切片时使用的，下面的GPU类似 */
         template<typename DType, typename ... _Args> 
         inline DType* cpu(int i, _Args&& ... args) { return cpu<DType>() + offset(i, args...); }
 
@@ -772,21 +911,35 @@ namespace SimpleYolo{
         template<typename DType, typename ... _Args> 
         inline DType& at(int i, _Args&& ... args) { return *(cpu<DType>() + offset(i, args...)); }
         
+        
+
+    /* @致青春 获取数据和空间 */
         std::shared_ptr<MixMemory> get_data()             const {return data_;}
         std::shared_ptr<MixMemory> get_workspace()        const {return workspace_;}
         Tensor& set_workspace(std::shared_ptr<MixMemory> workspace) {workspace_ = workspace; return *this;}
+        
 
+    /* @致青春 获取流和设置流 */
         cudaStream_t get_stream() const{return stream_;}
         Tensor& set_stream(cudaStream_t stream){stream_ = stream; return *this;}
 
         Tensor& set_mat     (int n, const cv::Mat& image);
         Tensor& set_norm_mat(int n, const cv::Mat& image, float mean[3], float std[3]);
+        
+
+    /* @致青春 参数cpu<float>(n, c)，使用了可变长参数的功能 ，这里是获取一段数据，这里需要深挖，先放放 */
         cv::Mat at_mat(int n = 0, int c = 0) { return cv::Mat(height(), width(), CV_32F, cpu<float>(n, c)); }
 
+        
+
+    /* @致青春 设置流为异步执行 */
         Tensor& synchronize();
         const char* shape_string() const{return shape_string_;}
         const char* descriptor() const;
 
+        
+
+    /* @致青春 这部分很复杂，需要多理解 */
         Tensor& copy_from_gpu(size_t offset, const void* src, size_t num_element, int device_id = CURRENT_DEVICE_ID);
 
         /**
@@ -822,13 +975,28 @@ namespace SimpleYolo{
         void setup_data(std::shared_ptr<MixMemory> data);
 
     private:
+        
+
+    /* @致青春 tensor的shape */
         std::vector<int> shape_;
+        
+
+    /* @致青春 tensor所占的空间大小 */
         size_t bytes_    = 0;
+        
+
+    /* @致青春 数据头 包含三部分，初始化、CPU、GPU */
         DataHead head_   = DataHead::Init;
+        
+
+    /* @致青春 创建流的声明 */
         cudaStream_t stream_ = nullptr;
         int device_id_   = 0;
         char shape_string_[100];
         char descriptor_string_[100];
+        
+
+    /* @致青春 MixMemory获取内存或者显存 */
         std::shared_ptr<MixMemory> data_;
         std::shared_ptr<MixMemory> workspace_;
     };
@@ -899,6 +1067,9 @@ namespace SimpleYolo{
         return *this;
     }
 
+    
+
+    /* @致青春 这里把cpu内存和GPU内存分配放到一起 */
     void Tensor::setup_data(shared_ptr<MixMemory> data){
         
         data_ = data;
@@ -1033,14 +1204,26 @@ namespace SimpleYolo{
         return *this;
     }
 
-    Tensor& Tensor::to_gpu(bool copy) {
 
+    
+
+    /* @致青春 
+        先开辟需要大小的gpu空间，然后初始化为0 ，然后把cpu的数据转换为GPU    
+    */
+    Tensor& Tensor::to_gpu(bool copy) {
+        
+
+    /* @致青春 如果已经是GPU的数据，直接返回即可 */
         if (head_ == DataHead::Device)
             return *this;
+        
 
+    /* @致青春 先更新数据头信息为GPU,然后开辟GPU空间，初始化为0 */
         head_ = DataHead::Device;
         data_->gpu(bytes_);
+        
 
+    /* @致青春 在确定数据不为空的情况下，把数据copy到GPU上，cpu同理 */
         if (copy && data_->cpu() != nullptr) {
             AutoDevice auto_device_exchange(this->device());
             checkCudaRuntime(cudaMemcpyAsync(data_->gpu(), data_->cpu(), bytes_, cudaMemcpyHostToDevice, stream_));
@@ -1129,6 +1312,9 @@ namespace SimpleYolo{
         if (ptr) ptr->destroy();
     }
 
+    
+
+    /* @致青春 这个类就是构建模型的，和tensorrt官方的教程差不多， 只是这里不使用默认流，使用创建的流进行执行 */
     class EngineContext {
     public:
         virtual ~EngineContext() { destroy(); }
@@ -1149,10 +1335,17 @@ namespace SimpleYolo{
                 return false;
 
             owner_stream_ = true;
+            
+
+    /* @致青春 创建流 */
             checkCudaRuntime(cudaStreamCreate(&stream_));
             if(stream_ == nullptr)
                 return false;
+            
 
+    /* @致青春 下面就是标准的tensorrt的反序列化流程，不懂的可以看看官网的教程即可
+               其中runtime_，engine_，context_都是类的内置变量，
+            */
             runtime_ = shared_ptr<IRuntime>(createInferRuntime(gLogger), destroy_nvidia_pointer<IRuntime>);
             if (runtime_ == nullptr)
                 return false;
@@ -1186,10 +1379,20 @@ namespace SimpleYolo{
         shared_ptr<IRuntime> runtime_ = nullptr;
     };
 
+    
+
+    /* 
+    @致青春 这里不知道大家是否存在一个疑问就是为什么很多类名称后面都有Impl结尾，这里送大家一个单词implementation，意思是实施 执行
+        通常存在多态的情况下，抽象类的具体实现，即这个类是具体实现的意思
+    
+    @PeterHuang 这是一个很重要的实现类，具体实现在这里
+    @Kx Wang 我支持楼上
+    @希望 我也支持楼上
+    */
     class TRTInferImpl{
     public:
         virtual ~TRTInferImpl();
-        bool load(const std::string& file);
+        bool load(const std::string& file); // @Peter 加载模型 @希望 注意这里用的是string
         bool load_from_memory(const void* pdata, size_t size);
         void destroy();
         void forward(bool sync);
@@ -1323,7 +1526,9 @@ namespace SimpleYolo{
     }
 
     bool TRTInferImpl::load(const std::string& file) {
+        
 
+    /* @致青春 反序列化数据 */
         auto data = load_file(file);
         if (data.empty())
             return false;
@@ -1338,6 +1543,9 @@ namespace SimpleYolo{
 
         workspace_.reset(new MixMemory());
         cudaGetDevice(&device_);
+        
+
+    /* @致青春 输入输出结果绑定或者是映射  */
         build_engine_input_and_outputs_mapper();
         return true;
     }
@@ -1349,8 +1557,16 @@ namespace SimpleYolo{
 
     void TRTInferImpl::build_engine_input_and_outputs_mapper() {
         
+
+    /* @致青春  引擎执行上下文 */
         EngineContext* context = (EngineContext*)this->context_.get();
+        
+
+    /* @致青春  获取输入输出的个数  */
         int nbBindings = context->engine_->getNbBindings();
+        
+
+    /* @致青春  获取最大的batch  */
         int max_batchsize = context->engine_->getMaxBatchSize();
 
         inputs_.clear();
@@ -1361,14 +1577,37 @@ namespace SimpleYolo{
         bindingsPtr_.clear();
         blobsNameMapper_.clear();
         for (int i = 0; i < nbBindings; ++i) {
+            
 
+    /* @致青春 获取维度dims = {nbDims=4 d=0x000000c1e77ff2bc {-1, 3, 640, 640, 0, 0, 0, 0} }， dims = {nbDims=3 d=0x000000c1e77ff2bc {-1, 25200, 85, 0, 0, 0, 0, 0} } */
             auto dims = context->engine_->getBindingDimensions(i);
+            
+
+    /* @致青春 获取数据类型 */
             auto type = context->engine_->getBindingDataType(i);
+            
+
+    /* @致青春 获取绑定的名称 */
             const char* bindingName = context->engine_->getBindingName(i);
+            
+
+    /* @致青春 设置批次 dims = {nbDims=4 d=0x000000c1e77ff2bc {16, 3, 640, 640, 0, 0, 0, 0} } ， dims = {nbDims=3 d=0x000000c1e77ff2bc {16, 25200, 85, 0, 0, 0, 0, 0} } */
             dims.d[0] = max_batchsize;
+            
+
+    /* @致青春 创建tensor   */
             auto newTensor = make_shared<Tensor>(dims.nbDims, dims.d);
+            
+
+    /* @致青春 把模型的流和tensor绑定 */
             newTensor->set_stream(this->context_->stream_);
+            
+
+    /* @致青春 给tensor开辟空间 */
             newTensor->set_workspace(this->workspace_);
+            
+
+    /* @致青春 判断是输入还是输出 */
             if (context->engine_->bindingIsInput(i)) {
                 //if is input
                 inputs_.push_back(newTensor);
@@ -1508,14 +1747,21 @@ namespace SimpleYolo{
 
     std::shared_ptr<TRTInferImpl> load_infer(const string& file) {
         
+
+    /* @致青春 实例化一个推理对象 */
         std::shared_ptr<TRTInferImpl> infer(new TRTInferImpl());
+        
+
+    /* @致青春 加载trt文件，并反序列化，这里包含了模型的输入输出的绑定和流的设定 */
         if (!infer->load(file))
             infer.reset();
         return infer;
     }
 
     //////////////////////////////class MonopolyAllocator//////////////////////////////////////
-    /* 独占分配器
+    
+
+    /* @致青春 独占分配器
        通过对tensor做独占管理，具有max_batch * 2个tensor，通过query获取一个
        当推理结束后，该tensor释放使用权，即可交给下一个图像使用，内存实现复用
     */
@@ -1617,18 +1863,33 @@ namespace SimpleYolo{
 
 
     /////////////////////////////////////////class ThreadSafedAsyncInfer/////////////////////////////////////////////
-    /* 异步线程安全的推理器
+    
+
+    /* @致青春 异步线程安全的推理器
        通过异步线程启动，使得调用方允许任意线程调用把图像做输入，并通过future来获取异步结果
     */
     template<class Input, class Output, class StartParam=std::tuple<std::string, int>, class JobAdditional=int>
     class ThreadSafedAsyncInfer{
     public:
+        
+
+    /* @致青春 定义结构体的目的是便于接收模板传入的参数和后面的使用方便 */
         struct Job{
-            Input input;
-            Output output;
-            JobAdditional additional;
-            MonopolyAllocator<Tensor>::MonopolyDataPointer mono_tensor;
-            std::shared_ptr<std::promise<Output>> pro;
+            Input input;                                                
+
+    /* @致青春 输入相关参数 */
+            Output output;                                              
+
+    /* @致青春 输出相关参数 */
+            JobAdditional additional;                                   
+
+    /* @致青春 预处理和后处理相关矩阵 */
+            MonopolyAllocator<Tensor>::MonopolyDataPointer mono_tensor; 
+
+    /* @致青春 独一的tensor */
+            std::shared_ptr<std::promise<Output>> pro;                  
+
+    /* @致青春 promise,获取相关结果使用的 */
         };
 
         virtual ~ThreadSafedAsyncInfer(){
@@ -1656,12 +1917,23 @@ namespace SimpleYolo{
             }
         }
 
+        
+
+    /* @致青春 开始启动，主要功能是启动完成，等待结果 */ 
         bool startup(const StartParam& param){
             run_ = true;
+            
 
+    /* @致青春 这里使用的promise和future的目的只是通知模型加载和参数配置完成，等待后面的数据图片任务 */
             std::promise<bool> pro;
             start_param_ = param;
+            
+
+    /* @致青春 开启线程，完成初始化工作后，等待预处理完成的图片，然后进行推理工作 */
             worker_      = std::make_shared<std::thread>(&ThreadSafedAsyncInfer::worker, this, std::ref(pro));
+            
+
+    /* @致青春 主线程来到这里会阻塞，阻塞来源上面的promise的pro对象，需要等待pro对象的返回 */
             return pro.get_future().get();
         }
 
@@ -1685,21 +1957,47 @@ namespace SimpleYolo{
 
         virtual std::vector<std::shared_future<Output>> commits(const std::vector<Input>& inputs){
 
+            
+
+    /* @致青春 batch_size的大小 */
             int batch_size = std::min((int)inputs.size(), this->tensor_allocator_->capacity());
+            
+
+    /* @致青春 创建一个job的vector，因此使用的是batch进行推理即多张图片的推理 */
             std::vector<Job> jobs(inputs.size());
+            
+
+    /* @致青春 创建一个输出结果接收vector */
             std::vector<std::shared_future<Output>> results(inputs.size());
 
             int nepoch = (inputs.size() + batch_size - 1) / batch_size;
             for(int epoch = 0; epoch < nepoch; ++epoch){
+                
+
+    /* @致青春 输入图片 */
                 int begin = epoch * batch_size;
                 int end   = std::min((int)inputs.size(), begin + batch_size);
+                
 
+    /* @致青春 遍历图片 */
                 for(int i = begin; i < end; ++i){
+                    
+
+    /* @致青春 实例化一个Job对象，用作数据的传输 */
                     Job& job = jobs[i];
+                    
+
+    /* @致青春 每一张图片都对应这个JOb的结构体，这里对promise进行实例化填充 */
                     job.pro = std::make_shared<std::promise<Output>>();
+                    
+
+    /* @致青春 开始进行预处理，其中job包含了所需的参数数据，到预处理进行填充或者使用 */
                     if(!preprocess(job, inputs[i])){
                         job.pro->set_value(Output());
                     }
+                    
+
+    /* @致青春 把图片的结果进行保存，来源这里解码的job.pro->set_value(image_based_boxes); */
                     results[i] = job.pro->get_future();
                 }
 
@@ -1720,15 +2018,26 @@ namespace SimpleYolo{
         virtual bool preprocess(Job& job, const Input& input) = 0;
         
         virtual bool get_jobs_and_wait(std::vector<Job>& fetch_jobs, int max_size){
+            
 
+    /* @致青春 定义一个互斥量锁，目的是当存在多线程同时获取jobs队列的数据时的安全保护机制，但是该工程只有当前线程，因此不存在竞争关系  */
             std::unique_lock<std::mutex> l(jobs_lock_);
+            
+
+    /* @致青春   等待唤醒后  */ 
             cond_.wait(l, [&](){
                 return !run_ || !jobs_.empty();
             });
 
             if(!run_) return false;
             
+            
+
+    /* @致青春 唤醒后开始工作 */
             fetch_jobs.clear();
+            
+
+    /* @致青春 把jobs_队列 里的数据填充到fetch_jobs， 供后面处理 */
             for(int i = 0; i < max_size && !jobs_.empty(); ++i){
                 fetch_jobs.emplace_back(std::move(jobs_.front()));
                 jobs_.pop();
@@ -1752,7 +2061,9 @@ namespace SimpleYolo{
 
     protected:
         StartParam start_param_;
-        std::atomic<bool> run_;
+        std::atomic<bool> run_; 
+
+    /* @致青春 原子操作 */
         std::mutex jobs_lock_;
         std::queue<Job> jobs_;
         std::shared_ptr<std::thread> worker_;
@@ -1762,7 +2073,9 @@ namespace SimpleYolo{
 
 
     ///////////////////////////////////class YoloTRTInferImpl//////////////////////////////////////
-    /* Yolo的具体实现
+    
+
+    /* @致青春 Yolo的具体实现
         通过上述类的特性，实现预处理的计算重叠、异步垮线程调用，最终拼接为多个图为一个batch进行推理。最大化的利用
         显卡性能，实现高性能高可用好用的yolo推理
     */
@@ -1805,7 +2118,9 @@ namespace SimpleYolo{
     class YoloTRTInferImpl : public Infer, public ThreadSafedAsyncInferImpl{
     public:
 
-        /** 要求在TRTInferImpl里面执行stop，而不是在基类执行stop **/
+        
+
+    /* @致青春 要求在TRTInferImpl里面执行stop，而不是在基类执行stop */
         virtual ~YoloTRTInferImpl(){
             stop();
         }
@@ -1813,6 +2128,9 @@ namespace SimpleYolo{
         virtual bool startup(const string& file, Type type, int gpuid, float confidence_threshold, float nms_threshold){
 
             if(type == Type::V5){
+                
+
+    /* @致青春 归一化，获取归一化的参数，这里可以设置归一化参数 */
                 normalize_ = Norm::alpha_beta(1 / 255.0f, 0.0f, ChannelType::SwapRB);
             }else if(type == Type::X){
                 //float mean[] = {0.485, 0.456, 0.406};
@@ -1829,24 +2147,47 @@ namespace SimpleYolo{
         }
 
         virtual void worker(promise<bool>& result) override{
+            
 
+    /* @致青春  解析传入的参数，分别是模型路径和调用GPUid号 */
             string file = get<0>(start_param_);
             int gpuid   = get<1>(start_param_);
+            
 
+    /* @致青春  设置使用GPU */
             set_device(gpuid);
+            
+
+    /* @致青春  加载模型反序列化，绑定cuda流,绑定输入输出等操作 */
             auto engine = load_infer(file);
             if(engine == nullptr){
                 INFOE("Engine %s load failed", file.c_str());
                 result.set_value(false);
                 return;
             }
+            
 
+    /* @致青春 打印引擎相关信息 */
             engine->print();
+            
 
+    /* @致青春 设置bbox的最大数 */
             const int MAX_IMAGE_BBOX  = 1024;
+            
+
+    /* @致青春 每个bbox的携带的数据 */
             const int NUM_BOX_ELEMENT = 7;      // left, top, right, bottom, confidence, class, keepflag
+            
+
+    /* @致青春 定义一个仿射矩阵的tensor */
             Tensor affin_matrix_device;
+            
+
+    /* @致青春 定义一个输出的tensor */
             Tensor output_array_device;
+            
+
+    /* @致青春 获取引擎的相关信息 */
             int max_batch_size = engine->get_max_batch_size();
             auto input         = engine->tensor("images");
             auto output        = engine->tensor("output");
@@ -1854,23 +2195,40 @@ namespace SimpleYolo{
 
             input_width_       = input->size(3);
             input_height_      = input->size(2);
+            
+
+    /* @致青春 分配GPU显存，显存的大小为max_batch_size * 2 */
             tensor_allocator_  = make_shared<MonopolyAllocator<Tensor>>(max_batch_size * 2);
             stream_            = engine->get_stream();
             gpu_               = gpuid;
+            
+
+    /* @致青春 执行下面的代码，会使得主线程继续执行， 在这里设置阻塞的原因，可能设计者任务初始化会慢于任务的到来 */
             result.set_value(true);
 
             input->resize_single_dim(0, max_batch_size).to_gpu();
             affin_matrix_device.set_stream(stream_);
 
-            // 这里8个值的目的是保证 8 * sizeof(float) % 32 == 0
+            
+
+    /* @致青春 这里8个值的目的是保证 8 * sizeof(float) % 32 == 0 */ 
             affin_matrix_device.resize(max_batch_size, 8).to_gpu();
 
-            // 这里的 1 + MAX_IMAGE_BBOX结构是，counter + bboxes ...
+            
+
+    /* @致青春 这里的 1 + MAX_IMAGE_BBOX结构是，counter + bboxes ... */ 
             output_array_device.resize(max_batch_size, 1 + MAX_IMAGE_BBOX * NUM_BOX_ELEMENT).to_gpu();
 
             vector<Job> fetch_jobs;
+
+            
+
+    /* @致青春 上面的准备工作做完后，将等待预处理后的图片过来，进行处理 */
             while(get_jobs_and_wait(fetch_jobs, max_batch_size)){
 
+                
+
+    /* @致青春 一旦进来说明有图片数据 ，获取图片的张数 */
                 int infer_batch_size = fetch_jobs.size();
                 input->resize_single_dim(0, infer_batch_size);
 
@@ -1881,9 +2239,14 @@ namespace SimpleYolo{
                     input->copy_from_gpu(input->offset(ibatch), mono->gpu(), mono->count());
                     job.mono_tensor->release();
                 }
+                
 
+    /* @致青春 开始推理 */
                 engine->forward(false);
                 output_array_device.to_gpu(false);
+                
+
+    /* @致青春 下面进行解码，解码后面在详细研究 */
                 for(int ibatch = 0; ibatch < infer_batch_size; ++ibatch){
                     
                     auto& job                 = fetch_jobs[ibatch];
@@ -1930,25 +2293,62 @@ namespace SimpleYolo{
                 return false;
             }
 
+            
+
+    /* @致青春 配置gpu */
             AutoDevice auto_device(gpu_);
+            
+
+    /* @致青春 获取job里面的tensor的数据地址，第一次为nullptr */
             auto& tensor = job.mono_tensor->data();
             if(tensor == nullptr){
                 // not init
                 tensor = make_shared<Tensor>();
                 tensor->set_workspace(make_shared<MixMemory>());
             }
+            
 
+    /* @致青春 获取输入模型的shape， input_width_和input_height_在模型创建时从模型获取 */
             Size input_size(input_width_, input_height_);
+            
+
+    /* @致青春 把当前的图片大小和模型所需的大小，输入进去获取仿射变换的矩阵 */
             job.additional.compute(image.size(), input_size);
             
+
+    /* @致青春 把tensor和流绑定，后续都会使用这个流进行处理，流的创建也是在模型创建时创建 */
             tensor->set_stream(stream_);
+            
+
+    /* @致青春 把tensor  resize一下，此时的tensor还未填充数据 */
             tensor->resize(1, 3, input_height_, input_width_);
 
+            
+
+    /* @致青春 GPU的显存设置 主要考虑的是仿射矩阵和图片数据的传输，这里需要深入理为什么这样做？ */
+            
+
+    /* @致青春 获取图片的大小 */
             size_t size_image      = image.cols * image.rows * 3;
+            
+
+    /* @致青春 获取仿射矩阵的大小，同时进行字节对齐 */
             size_t size_matrix     = upbound(sizeof(job.additional.d2i), 32);
+            
+
+    /* @致青春 获取创建内存的对象 */
             auto workspace         = tensor->get_workspace();
+            
+
+    /* @致青春 创建GPU显存，并返回起始地址，同时获取的空间大小是图片和仿射矩阵一起的大小 */
             uint8_t* gpu_workspace        = (uint8_t*)workspace->gpu(size_matrix + size_image);
+            
+
+    /* @致青春 这里显存填充数据是通过先填充仿射矩阵的，在填充图片的数据，那么起始位置应该是仿射矩阵的地址，因此如下 */
             float*   affine_matrix_device = (float*)gpu_workspace;
+            
+
+    /* @致青春 显存起始地址加上仿射矩阵地址就是图片的地址，因此如下，下面的cpu的类似 */
             uint8_t* image_device         = size_matrix + gpu_workspace;
 
             uint8_t* cpu_workspace        = (uint8_t*)workspace->cpu(size_matrix + size_image);
@@ -1957,17 +2357,29 @@ namespace SimpleYolo{
 
             //checkCudaRuntime(cudaMemcpyAsync(image_host,   image.data, size_image, cudaMemcpyHostToHost,   stream_));
             // speed up
+            
+
+    /* @致青春 具体的拷贝上述说明相同 */
             memcpy(image_host, image.data, size_image);
             memcpy(affine_matrix_host, job.additional.d2i, sizeof(job.additional.d2i));
             checkCudaRuntime(cudaMemcpyAsync(image_device, image_host, size_image, cudaMemcpyHostToDevice, stream_));
             checkCudaRuntime(cudaMemcpyAsync(affine_matrix_device, affine_matrix_host, sizeof(job.additional.d2i), cudaMemcpyHostToDevice, stream_));
 
+            
+
+    /* @致青春 这里将开始进行仿射变换其中输入的主要是image_device和affine_matrix_device， 输出主要是tensor->gpu<float>() */
             warp_affine_bilinear_and_normalize_plane(
                 image_device,         image.cols * 3,       image.cols,       image.rows, 
                 tensor->gpu<float>(), input_width_,         input_height_, 
                 affine_matrix_device, 114, 
                 normalize_, stream_
             );
+            
+
+    /* @致青春 这里还需要说明一下 tensor的最终地址还是job里的地址，只是这块地址是固定的，两个batch的大小，因此这里处理完就结束了，但是
+                数据已经在job里了 
+                inline void* gpu() const { ((Tensor*)this)->to_gpu(); return data_->gpu(); }
+            */
             return true;
         }
 
@@ -2033,6 +2445,9 @@ namespace SimpleYolo{
     }
 
     shared_ptr<Infer> create_infer(const string& engine_file, Type type, int gpuid, float confidence_threshold, float nms_threshold){
+        
+
+    /* @致青春 创建一个推理实例，该实例具备了引擎的创建、加载模型，反序列化，创建线程等一系列操作， */
         shared_ptr<YoloTRTInferImpl> instance(new YoloTRTInferImpl());
         if(!instance->startup(engine_file, type, gpuid, confidence_threshold, nms_threshold)){
             instance.reset();

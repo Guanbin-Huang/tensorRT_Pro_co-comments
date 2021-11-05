@@ -37,7 +37,7 @@ static void append_to_file(const string& file, const string& data){
 
 static void inference_and_performance(int deviceid, const string& engine_file, TRT::Mode mode, Yolo::Type type, const string& model_name){
 
-    auto engine = Yolo::create_infer(engine_file, type, deviceid, 0.4f, 0.5f);
+    auto engine = Yolo::create_infer(engine_file, type, deviceid, 0.25f, 0.45f);
     if(engine == nullptr){
         INFOE("Engine is nullptr");
         return;
@@ -168,7 +168,6 @@ int app_yolo(){
     // test(Yolo::Type::V5, TRT::Mode::FP32, "yolov5x");
     // test(Yolo::Type::V5, TRT::Mode::FP32, "yolov5l");
     // test(Yolo::Type::V5, TRT::Mode::FP32, "yolov5m");
-    //->@codylcs:flow of yolov5 infer: tutorial\0.0tensorRT_Pro_comments\codylcs_imgs\tensorrt_cpp_yolo.drawio.png
     test(Yolo::Type::V5, TRT::Mode::FP32, "yolov5s");
 
     // test(Yolo::Type::V5, TRT::Mode::FP16, "yolov5x6");
