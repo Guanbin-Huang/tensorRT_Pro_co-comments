@@ -33,7 +33,7 @@ https://github.com/shouxieai/tensorRT_Pro
 
 ## 目前已有的comments
 - 以下名字为微信名称
-- tutorial by deeppeter and 小菜鸡
+- tutorial/1.0 2.0(框架性解读) by deeppeter and  0.0 by 小菜鸡
 - simple_yolo by 致青春
 - src/tensorRT/common/monopoly_allocator.hpp by 没有昵称
 
