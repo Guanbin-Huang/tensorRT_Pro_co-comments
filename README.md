@@ -10,7 +10,7 @@ https://github.com/shouxieai/tensorRT_Pro
 
 我们将采用最简单易行的方式鼓励大家参与建设与共赢，任何人都可以成为本项目的contributor. 参与方式如下
 
-- 联系deeppter，成为contributor
+- 联系deeppeter(微信号 peterdeep)，成为contributor
 - git clone 下 tensorRT_Pro_comments
 - 按着自己本身的工作方式，在你理解和学习代码的时候添加注释，再git push回去
 
