@@ -55,7 +55,6 @@ public:
     class MonopolyData{
     public:
         std::shared_ptr<_ItemType>& data(){ return data_; } //@ 没有昵称 //在将一张图片的resize_norm结果拷贝到input tensor后，调用该函数恢复MonopolyData状态
-
         void release(){manager_->release_one(this);}
 
     private: 

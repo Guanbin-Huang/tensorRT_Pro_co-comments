@@ -53,6 +53,6 @@ https://github.com/shouxieai/tensorRT_Pro
 
 
 ## 注意事项：
-- 参考template_gitignore, 绝对不允许git push 大文件上来！！！！！！
 
+- 反正不要上传大文件
 
