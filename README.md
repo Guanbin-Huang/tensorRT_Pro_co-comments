@@ -55,6 +55,4 @@ https://github.com/shouxieai/tensorRT_Pro
 
 ## 注意事项：
 @peterhuang 
-- 举头望明月
-- 低头思故乡
-- 呃呃呃
+- 我爱中国
