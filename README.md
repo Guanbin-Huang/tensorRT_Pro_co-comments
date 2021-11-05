@@ -29,14 +29,14 @@ https://github.com/shouxieai/tensorRT_Pro
 <div align = center>
     <img src = 'tutorial/README_imgs/3.jpg' width = '97%'>
 </div>
-<<<<<<< HEAD
 
 ## 目前已有的comments
-- tutorial by deeppeter(微信名) and 小菜鸡 (微信名)
+- 以下名字为微信名称
+- tutorial by deeppeter and 小菜鸡
 - simple_yolo by 致青春
+- src/tensorRT/common/monopoly_allocator.hpp by 没有昵称
+
 
 ## 注意事项：
 - 参考template_gitignore, 不要git push 大文件上来
 
-=======
->>>>>>> 51946b6f7c80472851f334015364cae6df82491b
