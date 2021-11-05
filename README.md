@@ -2,7 +2,8 @@
 tensorRT_Pro:
 https://github.com/shouxieai/tensorRT_Pro
 
-:fire: :fire: :sparkles: 想要加入的赶紧在群上发出来自己的github账号/邮箱吧！！！ :sparkles: :zap: :zap:
+:fire: :fire: :sparkles: 想要加入的赶紧在群上发出来自己的github账号/邮箱吧！！！ :sparkles: :zap: :zap: <br>
+各位小伙伴们将会成为contributor一起共建更好用的部署工具库
 
 
 本仓库建立的主要目的是希望能够帮助大家更好地学习使用tensorRT_Pro,为此我们希望集结大家的力量一起去将平时自己写的comments也能按着自己习惯git push上来。
