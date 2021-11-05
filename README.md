@@ -59,8 +59,8 @@ https://github.com/shouxieai/tensorRT_Pro
 
 @daslkfj
 // 锄禾日当午
-// 汗滴禾下土，
-// 谁知盘中餐
+// 汗awega下土，
+// 谁aweoi餐
 // 粒粒皆辛苦
    哈哈哈哈啊哈哈哈哈哈
 
