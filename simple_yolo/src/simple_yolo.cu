@@ -86,7 +86,7 @@ namespace SimpleYolo{
     /* @致青春 归一化操作，可以支持均值标准差，alpha beta，和swap RB */
     struct Norm{
         float mean[3];
-        float std[3];
+        float std[3]; 
         float alpha, beta;
         NormType type = NormType::None;
         ChannelType channel_type = ChannelType::None;
