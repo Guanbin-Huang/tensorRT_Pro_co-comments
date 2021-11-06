@@ -4,7 +4,7 @@
 #include <common/ilogger.hpp>
 #include <functional>
 
-int app_yolo();
+int app_yolo(); // 里面有v5 和x
 int app_alphapose();
 int app_fall_recognize();
 int app_retinaface();
