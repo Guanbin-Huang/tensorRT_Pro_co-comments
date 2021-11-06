@@ -42,5 +42,5 @@ https://github.com/shouxieai/tensorRT_Pro
 
 ## 注意事项：
 @peterhuang 
-不要上传大文件，.gitignore模板可参考temp_gitignore
+一定要记住不要上传上传大文件，.gitignore模板可参考temp_gitignore
 
