@@ -1,3 +1,4 @@
+
 cpp_srcs := $(shell find src -name "*.cpp")
 cpp_objs := $(cpp_srcs:.cpp=.o)
 cpp_objs := $(cpp_objs:src/%=objs/%)
@@ -43,8 +44,7 @@ library_paths := $(lean_protobuf)/lib \
 			$(lean_opencv)/lib    \
 			$(lean_tensor_rt)/lib \
 			$(lean_cuda)/lib64  \
-			$(lean_cudnn)/lib \
-			/datav/k12/lean/ffmpeg4.2/lib
+			$(lean_cudnn)/lib
 
 link_librarys := opencv_core opencv_imgproc opencv_videoio opencv_imgcodecs \
 			nvinfer nvinfer_plugin \
@@ -203,4 +203,3 @@ clean :
 	@rm -rf python/trtpy/libplugin_list.so
 
 .PHONY : clean yolo alphapose fall debug
-

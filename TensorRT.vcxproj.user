@@ -17,7 +17,4 @@
     <LocalDebuggerEnvironment>PATH=$(projectDir)lean/cuda10.1/bin;$(projectDir)lean/opencv3.4.6/lib;$(projectDir)lean/cudnn8.2.2.26;$(projectDir)lean/TensorRT-8.0.1.6/lib</LocalDebuggerEnvironment>
     <LocalDebuggerWorkingDirectory>workspace</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
-  <PropertyGroup>
-    <ShowAllFiles>true</ShowAllFiles>
-  </PropertyGroup>
 </Project>
