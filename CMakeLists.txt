@@ -34,6 +34,7 @@ set(PROTOBUF_DIR "/data/sxai/lean/protobuf3.11.4")
 
 
 find_package(CUDA REQUIRED)
+# 这里OpenCV为什么不设置REQUIRED呢，是因为没有也没关系嘛
 find_package(OpenCV)
 
 include_directories(
