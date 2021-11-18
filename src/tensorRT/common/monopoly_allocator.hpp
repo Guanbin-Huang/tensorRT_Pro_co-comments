@@ -25,15 +25,6 @@
  * 而这里提到的几个点就是设计的主要目标
  **/
 
-/* 
-/*
-    @没有昵称
-        主要解决的，就是：
-        1. batch的缓存，预处理和推理时间的重叠
-        2. tensor的复用
-        3. 队列阻塞，不让队列爆满
-*/
-
 #ifndef MONOPOLY_ALLOCATOR_HPP
 #define MONOPOLY_ALLOCATOR_HPP
 
@@ -48,26 +39,19 @@ public:
     /* Data是数据容器类
        允许query获取的item执行item->release释放自身所有权，该对象可以被复用
        通过item->data()获取储存的对象的指针
-    
-    @没有昵称 
-        一个MonopolyData表示一个Tensor
     */
     class MonopolyData{
     public:
-        std::shared_ptr<_ItemType>& data(){ return data_; } //@ 没有昵称 //在将一张图片的resize_norm结果拷贝到input tensor后，调用该函数恢复MonopolyData状态
+        std::shared_ptr<_ItemType>& data(){ return data_; }
         void release(){manager_->release_one(this);}
 
-    private: 
-        // @没有昵称 通过MonopolyAllocator管理std::vector<std::shared_ptr<MonopolyData>>
+    private:
         MonopolyData(MonopolyAllocator* pmanager){manager_ = pmanager;}
 
     private:
         friend class MonopolyAllocator;
-        //@ 没有昵称 一个MonopolyAllocator管理2个batch的tensor
-
         MonopolyAllocator* manager_ = nullptr;
         std::shared_ptr<_ItemType> data_;
-        //@ 没有昵称 默认可获取，如果当前Tensor已被使用，则将available_设为false
         bool available_ = true;
     };
     typedef std::shared_ptr<MonopolyData> MonopolyDataPointer;
@@ -77,7 +61,6 @@ public:
         num_available_ = size;
         datas_.resize(size);
 
-        //@ 没有昵称 e.g.:batchsize为16时，创建32个MonopolyData对象
         for(int i = 0; i < size; ++i)
             datas_[i] = std::shared_ptr<MonopolyData>(new MonopolyData(this));
     }
@@ -104,7 +87,6 @@ public:
         if(num_available_ == 0){
             num_wait_thread_++;
 
-            //@没有昵称 当可用数量>0时，唤醒
             auto state = cv_.wait_for(l, std::chrono::milliseconds(timeout), [&](){
                 return num_available_ > 0 || !run_;
             });
@@ -117,7 +99,6 @@ public:
                 return nullptr;
         }
 
-        //@没有昵称 找出第一个状态不为false的MonopolyDat，并返回其引用。返回前将其状态改为false
         auto item = std::find_if(datas_.begin(), datas_.end(), [](MonopolyDataPointer& item){return item->available_;});
         if(item == datas_.end())
             return nullptr;
@@ -127,18 +108,15 @@ public:
         return *item;
     }
 
-    //@没有昵称 2*maxBatchSize中没被处理的tensor数量
     int num_available(){
         return num_available_;
     }
 
-    //@没有昵称 同上
     int capacity(){
         return capacity_;
     }
 
 private:
-    //@没有昵称 当一张图片的结果处理好之后，恢复MonopolyData的原始状态:availabel = true, 并将可用MonopolyData数量+1
     void release_one(MonopolyData* prq){
         std::unique_lock<std::mutex> l(lock_);
         if(!prq->available_){
