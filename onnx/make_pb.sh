@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # 请修改protoc为你要使用的版本protoc
-# protoc是protobuf的编译器，用于将.proto文件生成目标语言的代码
 protoc=/data/sxai/lean/protobuf3.11.4/bin/protoc
 #protoc=/data/sxai/temp/protobuf-build3.18.x/bin/protoc
 
@@ -9,7 +8,6 @@ echo Create directory "pbout"
 rm -rf pbout
 mkdir -p pbout
 
-# 一个好的proto文件的文件名应该是packageName.MessageName.proto
 $protoc onnx-ml.proto --cpp_out=pbout
 $protoc onnx-operators-ml.proto --cpp_out=pbout
 
@@ -25,6 +23,5 @@ cp pbout/onnx-ml.pb.h           ../src/tensorRT/onnx/onnx-ml.pb.h
 echo Copy pbout/onnx-operators-ml.pb.h to ../src/tensorRT/onnx/onnx-operators-ml.pb.h
 cp pbout/onnx-operators-ml.pb.h ../src/tensorRT/onnx/onnx-operators-ml.pb.h
 
-# 过河拆桥，不外如是
 echo Remove directory "pbout"
 rm -rf pbout
