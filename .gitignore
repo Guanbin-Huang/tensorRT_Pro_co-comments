@@ -46,7 +46,6 @@ tutorial/2.0CenterNet_from_torch_trt/0_to_1_python_to_cuda/cpp_cuda_centernet/wo
 *.app
 
 /objs
-/.idea
 
 *.trtmodel
 *.onnx
@@ -82,7 +81,7 @@ __pycache__
 
 __pycache__
 
-/workspace/wget.exe
+!/workspace/wget.exe
 /workspace/*.mp4
 /workspace/single_inference
 /workspace/exp/tracker.final.mp4
@@ -91,3 +90,7 @@ __pycache__
 /simple_yolo/objs
 /workspace/*.json
 /workspace/*.png
+/resful_server/workspace/pro
+/resful_server/objs
+/resful_server/workspace/*.trtmodel
+/resful_server/workspace/*.onnx

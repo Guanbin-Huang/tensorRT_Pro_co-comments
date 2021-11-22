@@ -48,6 +48,8 @@ link_librarys := opencv_core opencv_imgproc opencv_videoio opencv_imgcodecs \
 			cuda cublas cudart cudnn \
 			stdc++ dl
 
+empty         :=
+export_path   := $(subst $(empty) $(empty),:,$(library_paths))
 
 paths     := $(foreach item,$(library_paths),-Wl,-rpath=$(item))
 include_paths := $(foreach item,$(include_paths),-I$(item))
@@ -98,15 +100,18 @@ objs/%.mk : src/%.cpp
 objs/%.cumk : src/%.cu
 	@echo Compile depends CUDA $<
 	@mkdir -p $(dir $@)
-	@nvcc -M $< -MF $@ -MT $(@:.cumk=.o) $(cu_compile_flags)
+	@nvcc -M $< -MF $@ -MT $(@:.cumk=.cuo) $(cu_compile_flags)
 
 run : workspace/pro
 	@cd workspace && ./pro
 
 debug :
-	@echo $(includes)
+	@echo $(export_path)
 
 clean :
 	@rm -rf objs workspace/pro build
 
 .PHONY : clean yolo alphapose fall debug
+
+# 导出符号，使得运行时能够链接上
+export LD_LIBRARY_PATH:=$(export_path):$(LD_LIBRARY_PATH)
