@@ -1,6 +1,4 @@
-
-#include "simple_yolo.hpp"
-
+#include"simple_yolo.hpp"
 #if defined(_WIN32)
 #	include <Windows.h>
 #   include <wingdi.h>
@@ -111,17 +109,15 @@ bool requires_model(const string& name) {
 
 static void inference_and_performance(int deviceid, const string& engine_file, SimpleYolo::Mode mode, SimpleYolo::Type type, const string& model_name){
 
+    //创建推理引擎，同时初始化处理线程
     auto engine = SimpleYolo::create_infer(engine_file, type, deviceid, 0.4f, 0.5f);
     if(engine == nullptr){
         printf("Engine is nullptr\n");
         return;
     }
 
-	vector<cv::String> files_;
-	files_.reserve(10000);
-
-    cv::glob("inference/*.jpg", files_, true);
-	vector<string> files(files_.begin(), files_.end());
+    vector<string> files;
+    cv::glob("inference/*.jpg", files, true);
     
     vector<cv::Mat> images;
     for(int i = 0; i < files.size(); ++i){
@@ -186,6 +182,7 @@ static void test(SimpleYolo::Type type, SimpleYolo::Mode mode, const string& mod
     const char* name = model.c_str();
     printf("===================== test %s %s %s ==================================\n", SimpleYolo::type_name(type), mode_name, name);
 
+    //判断模型是否存在，不存在则远程下载
     if(!requires_model(name))
         return;
 
@@ -193,6 +190,7 @@ static void test(SimpleYolo::Type type, SimpleYolo::Mode mode, const string& mod
     string model_file = cv::format("%s_dynamic.%s.trtmodel", name, mode_name);
     int test_batch_size = 16;
     
+    //判断是否导出trt模型，如果导出继续向下执行，反之进行导出操作
     if(!exists(model_file)){
         SimpleYolo::compile(
             mode, type,                 // FP32、FP16、INT8
@@ -203,6 +201,7 @@ static void test(SimpleYolo::Type type, SimpleYolo::Mode mode, const string& mod
             "inference"
         );
     }
+    //模型导出后，则进行执行，此时的直线直接是反序列化即可读取模型
     inference_and_performance(deviceid, model_file, mode, type, name);
 }
 
@@ -256,8 +255,8 @@ void direct_test(){
 
 int main(){
 
-    direct_test();
-    test(SimpleYolo::Type::V5, SimpleYolo::Mode::FP32, "yolov5s");
+    //direct_test();
+    test(SimpleYolo::Type::V5, SimpleYolo::Mode::FP16, "yolov5s");
     //test(SimpleYolo::Type::X, SimpleYolo::Mode::INT8, "yolox_s");
     
     //test(SimpleYolo::Type::X, SimpleYolo::Mode::FP32, "yolox_s");
