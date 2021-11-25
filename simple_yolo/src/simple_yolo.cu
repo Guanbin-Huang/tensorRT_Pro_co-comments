@@ -3,7 +3,7 @@
 #include <NvInfer.h>
 #include <NvOnnxParser.h>
 #include <cuda_runtime.h>
-#include "device_launch_parameters.h"
+
 #include <algorithm>
 #include <fstream>
 #include <memory>
@@ -13,7 +13,6 @@
 #include <mutex>
 #include <thread>
 #include <queue>
-
 
 #if defined(_WIN32)
 #	include <Windows.h>
@@ -128,12 +127,10 @@ namespace SimpleYolo{
     public:
         AutoDevice(int device_id = 0){
             cudaGetDevice(&old_);
-            if(old_ != device_id && device_id != -1)
                 checkCudaRuntime(cudaSetDevice(device_id));
         }
 
         virtual ~AutoDevice(){
-            if(old_ != -1)
                 checkCudaRuntime(cudaSetDevice(old_));
         }
     
@@ -266,7 +263,10 @@ namespace SimpleYolo{
         }
 
         try{
-            cv::glob(directory + "/*", files, true);
+			vector<cv::String> files_;
+			files_.reserve(10000);
+            cv::glob(directory + "/*", files_, true);
+			files.insert(files.end(), files_.begin(), files_.end());
         }catch(...){
             INFOE("Glob %s failed", directory.c_str());
             return output;
@@ -713,7 +713,6 @@ namespace SimpleYolo{
     }
     /* 引用数据 */
     void MixMemory::reference_data(void* cpu, size_t cpu_size, void* gpu, size_t gpu_size){
-
         release_all();
         
         if(cpu == nullptr || cpu_size == 0){
@@ -2542,5 +2541,3 @@ namespace SimpleYolo{
         return save_file(saveto, seridata->data(), seridata->size());
     }
 };
-
-

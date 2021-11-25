@@ -1,4 +1,6 @@
-#include"simple_yolo.hpp"
+
+#include "simple_yolo.hpp"
+
 #if defined(_WIN32)
 #	include <Windows.h>
 #   include <wingdi.h>
@@ -116,8 +118,11 @@ static void inference_and_performance(int deviceid, const string& engine_file, S
         return;
     }
 
-    vector<string> files;
-    cv::glob("inference/*.jpg", files, true);
+	vector<cv::String> files_;
+	files_.reserve(10000);
+
+    cv::glob("inference/*.jpg", files_, true);
+	vector<string> files(files_.begin(), files_.end());
     
     vector<cv::Mat> images;
     for(int i = 0; i < files.size(); ++i){
@@ -255,8 +260,8 @@ void direct_test(){
 
 int main(){
 
-    //direct_test();
-    test(SimpleYolo::Type::V5, SimpleYolo::Mode::FP16, "yolov5s");
+    direct_test();
+    test(SimpleYolo::Type::V5, SimpleYolo::Mode::FP32, "yolov5s");
     //test(SimpleYolo::Type::X, SimpleYolo::Mode::INT8, "yolox_s");
     
     //test(SimpleYolo::Type::X, SimpleYolo::Mode::FP32, "yolox_s");
