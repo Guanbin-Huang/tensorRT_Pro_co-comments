@@ -79,7 +79,14 @@ namespace Yolo{
     }
 
     static __global__ void nms_kernel(float* bboxes, int max_objects, float threshold){
-
+        /*
+        高性能nms：
+        1.只针对，当前线程进来的框，进行改动。
+        2.遍历所有框，类别一样而且confidence大于，当前线程框的才进行比较，这样就不需要排序，也不会重复比较。
+        3.如果类别一样，那么就看遍历的线程框是否在当前线程框的左边，因为左边的不比较，这样可以防止重复比较，具体可以画图了解。
+        4.创建一个变量，去更新被pass掉的框的状态。
+        5.一旦被pass掉，就直接return，这样就不会重复比较。
+        */
         int position = (blockDim.x * blockIdx.x + threadIdx.x);
         int count = min((int)*bboxes, max_objects);
         if (position >= count) 
