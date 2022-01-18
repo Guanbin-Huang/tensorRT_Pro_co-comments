@@ -416,7 +416,8 @@ namespace TRT {
 		std::vector<InputDims> inputsDimsSetup,
 		Int8Process int8process,
 		const std::string& int8ImageDirectory,
-		const std::string& int8EntropyCalibratorFile) {
+		const std::string& int8EntropyCalibratorFile,
+		const size_t maxWorkspaceSize) {
 
 		if (mode == Mode::INT8 && int8process == nullptr) {
 			INFOE("int8process must not nullptr, when in int8 mode.");
@@ -457,8 +458,10 @@ namespace TRT {
 
 				if(entropyCalibratorFiles.size() < maxBatchSize){
 					INFOW("Too few images provided, %d[provided] < %d[max batch size], image copy will be performed", entropyCalibratorFiles.size(), maxBatchSize);
-					for(int i = entropyCalibratorFiles.size(); i < maxBatchSize; ++i)
-						entropyCalibratorFiles.push_back(entropyCalibratorFiles[i % entropyCalibratorFiles.size()]);
+					
+					int old_size = entropyCalibratorFiles.size();
+                    for(int i = old_size; i < maxBatchSize; ++i)
+                        entropyCalibratorFiles.push_back(entropyCalibratorFiles[i % old_size]);
 				}
 			}
 		}
@@ -495,7 +498,6 @@ namespace TRT {
 		if(source.type() == ModelSourceType::OnnX || source.type() == ModelSourceType::OnnXData){
 			
 			const auto explicitBatch = 1U << static_cast<uint32_t>(nvinfer1::NetworkDefinitionCreationFlag::kEXPLICIT_BATCH);
-			//network = shared_ptr<INetworkDefinition>(builder->createNetworkV2(explicitBatch), destroy_nvidia_pointer<INetworkDefinition>);
 			network = shared_ptr<INetworkDefinition>(builder->createNetworkV2(explicitBatch), destroy_nvidia_pointer<INetworkDefinition>);
 
 			vector<nvinfer1::Dims> dims_setup(inputsDimsSetup.size());
@@ -553,10 +555,10 @@ namespace TRT {
 			config->setInt8Calibrator(int8Calibrator.get());
 		}
 
-		size_t _1_GB = 1 << 30;
 		INFO("Input shape is %s", join_dims(vector<int>(inputDims.d, inputDims.d + inputDims.nbDims)).c_str());
 		INFO("Set max batch size = %d", maxBatchSize);
-		INFO("Set max workspace size = %.2f MB", _1_GB / 1024.0f / 1024.0f);
+		INFO("Set max workspace size = %.2f MB", maxWorkspaceSize / 1024.0f / 1024.0f);
+		INFO("Base device: %s", CUDATools::device_description().c_str());
 
 		int net_num_input = network->getNbInputs();
 		INFO("Network has %d inputs:", net_num_input);
@@ -615,7 +617,7 @@ namespace TRT {
 		}
 		
 		builder->setMaxBatchSize(maxBatchSize);
-		config->setMaxWorkspaceSize(_1_GB);
+		config->setMaxWorkspaceSize(maxWorkspaceSize);
 
 		auto profile = builder->createOptimizationProfile();
 		for(int i = 0; i < net_num_input; ++i){

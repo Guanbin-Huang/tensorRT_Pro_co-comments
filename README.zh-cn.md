@@ -1,5 +1,6 @@
 阅读其他语言的README.md:[English](README.md), [简体中文](README.zh-cn.md).
 ## 最近的重要更新：
+- 🔥 docker镜像已经发布，请点击： https://hub.docker.com/r/hopef/tensorrt-pro
 - ⚡tensorRT_Pro_comments_version推出(共创版),为更好的学习体验助力. Repo: https://github.com/Guanbin-Huang/tensorRT_Pro_comments
 - 🔥 [简单的YoloV5/YoloX实现已经发布，简单好使，高性能，只有2个文件哦，没有多余依赖](simple_yolo)
 - 🔥yolov5-1.0到6.0/master是支持的，请看readme中对yolov5支持部分的解释
@@ -38,6 +39,38 @@ model     = models.resnet18(True).eval().to(device)
 trt_model = tp.from_torch(model, input)
 trt_out   = trt_model(input)
 ```
+
+- 简单的yolo python接口
+  - 要求: nvidia驱动 >= 440.33, 操作系统linux x86_64, python37/python38/python39
+  - `pip install trtpy`, 这是一个实验包，您可以通过pip进行安装，目前提供了yolo支持，删除了repo中的其他项，在不久的将来会提供更新
+    - 通过这个指令安装，您就可以使用python接口，而不需要配置cuda、cudnn、tensorRT等系列
+    - 内置的版本：CUDA10.2、CUDNN8.2.2.26、TensorRT8.0.1.6、protobuf3.11.4
+  ```python
+  import os
+  import cv2
+  import numpy as np
+  import trtpy as tp
+
+  engine_file = "yolov5s.fp32.trtmodel"
+  if not os.path.exists(engine_file):
+      tp.compile_onnx_to_file(1, tp.onnx_hub("yolov5s"), engine_file)
+
+  yolo   = tp.Yolo(engine_file, type=tp.YoloType.V5)
+  image  = cv2.imread("car.jpg")
+  bboxes = yolo.commit(image).get()
+  print(f"{len(bboxes)} objects")
+
+  for box in bboxes:
+      left, top, right, bottom = map(int, [box.left, box.top, box.right, box.bottom])
+      cv2.rectangle(image, (left, top), (right, bottom), tp.random_color(box.class_label), 5)
+
+  saveto = "yolov5.car.jpg"
+  print(f"Save to {saveto}")
+
+  cv2.imwrite(saveto, image)
+  cv2.imshow("result", image)
+  cv2.waitKey()
+  ```
 
 
 ## 简介
@@ -319,8 +352,8 @@ z.append(y.view(bs, self.na * ny * nx, self.no))
 if self.grid[i].shape[2:4] != x[i].shape[2:4] or self.onnx_dynamic:
     self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
 
-    # disconnect for pytorch trace
-    anchor_grid = (self.anchors[i].clone() * self.stride[i]).view(1, -1, 1, 1, 2)
+# disconnect for pytorch trace
+anchor_grid = (self.anchors[i].clone() * self.stride[i]).view(1, -1, 1, 1, 2)
 
 # yolov5/models/yolo.py第70行
 # y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
@@ -418,6 +451,92 @@ python tools/export_onnx.py -c yolox_m.pth -f exps/default/yolox_m.py --output-n
 cp YOLOX/yolox_m.onnx tensorRT_cpp/workspace/
 cd tensorRT_cpp
 make yolo -j32
+```
+
+</details>
+
+
+<details>
+<summary>YoloV3支持</summary>
+  
+- yolov3的onnx，你的pytorch版本>=1.7时，导出的onnx模型可以直接被当前框架所使用
+- 你的pytorch版本低于1.7时，或者对于yolov3，可以对opset进行简单改动后直接被框架所支持
+- 如果你想实现低版本pytorch的tensorRT推理、动态batchsize等更多更高级的问题，请打开我们[博客地址](http://zifuture.com:8090)后找到二维码进群交流
+1. 下载yolov3
+
+```bash
+git clone git@github.com:ultralytics/yolov3.git
+```
+
+2. 修改代码，支持动态batchsize，让-1改到batch上
+```python
+# line 55 forward function in yolov3/models/yolo.py 
+# bs, _, ny, nx = x[i].shape  # x(bs,255,20,20) to x(bs,3,20,20,85)
+# x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+# modified into:
+
+bs, _, ny, nx = map(int, x[i].shape)  # x(bs,255,20,20) to x(bs,3,20,20,85)
+bs = -1
+x[i] = x[i].view(bs, self.na, self.no, ny, nx).permute(0, 1, 3, 4, 2).contiguous()
+
+
+# line 70 in yolov3/models/yolo.py
+#  z.append(y.view(bs, -1, self.no))
+# modified into：
+z.append(y.view(bs, self.na * ny * nx, self.no))
+
+# line 62 in yolov3/models/yolo.py
+# if self.grid[i].shape[2:4] != x[i].shape[2:4] or self.onnx_dynamic:
+#    self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
+# modified into:
+if self.grid[i].shape[2:4] != x[i].shape[2:4] or self.onnx_dynamic:
+    self.grid[i], self.anchor_grid[i] = self._make_grid(nx, ny, i)
+anchor_grid = (self.anchors[i].clone() * self.stride[i]).view(1, -1, 1, 1, 2)
+
+# line 70 in yolov3/models/yolo.py
+# y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
+# modified into:
+y[..., 2:4] = (y[..., 2:4] * 2) ** 2 * anchor_grid  # wh
+
+# line 73 in yolov3/models/yolo.py
+# wh = (y[..., 2:4] * 2) ** 2 * self.anchor_grid[i]  # wh
+# modified into:
+wh = (y[..., 2:4] * 2) ** 2 * anchor_grid  # wh
+
+
+# line 52 in yolov3/export.py
+# torch.onnx.export(dynamic_axes={'images': {0: 'batch', 2: 'height', 3: 'width'},  # shape(1,3,640,640)
+#                                'output': {0: 'batch', 1: 'anchors'}  # shape(1,25200,85) 
+# modified into:
+torch.onnx.export(dynamic_axes={'images': {0: 'batch'},  # shape(1,3,640,640)
+                                'output': {0: 'batch'}  # shape(1,25200,85) 
+```
+3. 导出onnx模型
+```bash
+cd yolov3
+python export.py --weights=yolov3.pt --dynamic --include=onnx --opset=11
+```
+4. 复制模型并执行
+```bash
+cp yolov3/yolov3.onnx tensorRT_cpp/workspace/
+cd tensorRT_cpp
+
+# 修改代码在 src/application/app_yolo.cpp: main函数中，使用V5的方式即可运行他
+# test(Yolo::Type::V3, TRT::Mode::FP32, "yolov3");
+
+make yolo -j32
+```
+
+</details>
+
+
+<details>
+<summary>UNet 支持</summary>
+  
+- 请看这里的代码: https://github.com/shouxieai/unet-pytorch
+
+```
+make dunet -j32
 ```
 
 </details>
