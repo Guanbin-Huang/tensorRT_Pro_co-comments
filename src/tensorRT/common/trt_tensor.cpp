@@ -51,7 +51,7 @@ namespace TRT{
 	}
 
 	void MixMemory::reference_data(void* cpu, size_t cpu_size, void* gpu, size_t gpu_size){
-		release_all();
+		release_all();   // 释放掉 cpu 和 gpu 指针绑定的存储空间, 指针指向空
 		
 		if(cpu == nullptr || cpu_size == 0){
 			cpu = nullptr;
@@ -63,16 +63,21 @@ namespace TRT{
 			gpu_size = 0;
 		}
 
+        // 由类来管理这个 cpu 地址, gpu 地址, 并且初始化 size
+        // 1. 初始化为 空, size = 0
 		this->cpu_ = cpu;
 		this->cpu_size_ = cpu_size;
 		this->gpu_ = gpu;
 		this->gpu_size_ = gpu_size;
 
+        // 判断是否拥有 显存 或者 内存; 为 0 ，则代表拥有显存或者内存
 		this->owner_cpu_ = !(cpu && cpu_size > 0);
 		this->owner_gpu_ = !(gpu && gpu_size > 0);
+        // 正在调用的主线程的当前设备记录为 device_id_
 		checkCudaRuntime(cudaGetDevice(&device_id_));
 	}
 
+    // 销毁内存 和 显存
 	MixMemory::~MixMemory() {
 		release_all();
 	}
@@ -150,6 +155,7 @@ namespace TRT{
 		}
 	}
 
+    //@wkx 根据给定的 nchw 来开辟空间以及构造 Tensor, 利用内部setup_data, 指定数据的位置, 初始化设备信息
 	Tensor::Tensor(int n, int c, int h, int w, DataType dtype, shared_ptr<MixMemory> data, int device_id) {
 		this->dtype_ = dtype;
 		this->device_id_ = get_device(device_id);
@@ -174,6 +180,7 @@ namespace TRT{
 		resize(ndims, dims);
 	}
 
+    
 	Tensor::Tensor(DataType dtype, shared_ptr<MixMemory> data, int device_id){
 		shape_string_[0] = 0;
 		descriptor_string_[0] = 0;
@@ -200,6 +207,10 @@ namespace TRT{
 		return descriptor_ptr;
 	}
 
+    //
+    // @brief 根据shape_中的信息, 返回当前shape字符串到 shape_string_ 中
+    // 
+    // @return Tensor& 
 	Tensor& Tensor::compute_shape_string(){
 
 		// clean string
@@ -229,6 +240,11 @@ namespace TRT{
 		resize(shape);
 	}
 
+    //
+    // @brief 通过给定的 MixMemory 指针, 获取其所在的 device_id, 
+    // 根据 MixMemory 的 cpu_(指针) gpu_(指针) 来获取数据所在的位置(为空则不在对应位置);
+    // 并且把data_ 交给Tensor来管理;
+    // @param data 
 	void Tensor::setup_data(shared_ptr<MixMemory> data){
 		
 		data_ = data;
@@ -343,9 +359,15 @@ namespace TRT{
 		return *this;
 	}
 
+    //
+    // @brief 如果Tensor的 data_所管理的指针都为空, 则返回True否则返回False
+    // 
+    // @return true 
+    // @return false 
 	bool Tensor::empty() const{
 		return data_->cpu() == nullptr && data_->gpu() == nullptr;
 	}
+
 
 	int Tensor::count(int start_axis) const {
 
@@ -363,6 +385,10 @@ namespace TRT{
 		return resize(dims.size(), dims.data());
 	}
 
+    
+    // @brief 计算得到当前共有多少个元素
+    // example: shape(1,3,512,512) return: 1*3*512*512
+    // @return int 
 	int Tensor::numel() const{
 		int value = shape_.empty() ? 0 : 1;
 		for(int i = 0; i < shape_.size(); ++i){
@@ -380,9 +406,15 @@ namespace TRT{
 		return resize(new_shape);
 	}
 
+    // @brief 根据给定的shape(n, c, h, w), 去更新自己的 strides_ 和 需要的 memory
+    // 
+    // @param ndims: Tensor有几维
+    // @param dims:  dims: 每一维度的具体信息
+    // @return Tensor& 
 	Tensor& Tensor::resize(int ndims, const int* dims) {
 
 		vector<int> setup_dims(ndims);
+        // 给 setup_dims 赋值维度信息
 		for(int i = 0; i < ndims; ++i){
 			int dim = dims[i];
 			if(dim == -1){
@@ -391,18 +423,57 @@ namespace TRT{
 			}
 			setup_dims[i] = dim;
 		}
+        // 结果给 shape_
 		this->shape_ = setup_dims;
 
 		// strides = element_size
 		this->strides_.resize(setup_dims.size());
 		
+        // float32 = 4
+        // flaot16 = 2
+        // int8 = 1
 		size_t prev_size  = element_size();
 		size_t prev_shape = 1;
+        //
+        // y = np.reshape(np.arange(2*3*4), (2,3,4))
+        // array([[[ 0,  1,  2,  3],
+        // [ 4,  5,  6,  7],
+        // [ 8,  9, 10, 11]],
+        // [[12, 13, 14, 15],
+        // [16, 17, 18, 19],
+        // [20, 21, 22, 23]]])
+        // 
+        // y.strides
+        // (48, 16, 4)
+        // 
+        // y[1,1,1]
+        // 17
+        // 
+        // offset=sum(y.strides * np.array((1,1,1)))
+        // 1 * 48 + 1 * 16 + 1 * 4 = 68
+        // y.itemsize = 4
+        // offset/y.itemsize
+        // 17
+        
+        // 实现对应的操作
+        // example
+        // org_shape = (1, 2, 3, 4)
+        // org_strides_(96, 48, 16, 4)  
+        // shape (1, 2, 4, 3)
+        // org_strides_(96, 48, 12, 4)
+        // prev_size = sizeof(int) = 4
 		for(int i = (int)strides_.size() - 1; i >= 0; --i){
+            //3
+            //2, 1, 0
 			if(i + 1 < strides_.size()){
 				prev_size  = strides_[i+1];
-				prev_shape = shape_[i+1];
+				prev_shape = shape_[i+1];  // shape_ [1, 2, 4, 3]
 			}
+            
+            // stides_[3] = 4 * 1 = 4
+            // stides_[2] = stides_[3] * 3 = 4 * 3 = 12
+            // strides_[1] = stides_[2] * 4 = 12 * 4 = 48
+            // strides_[0] = stides_[1] * 2 = 48 * 2 = 96
 			strides_[i] = prev_size * prev_shape;
 		}
 
@@ -411,28 +482,39 @@ namespace TRT{
 		return *this;
 	}
 
+
+
+    // @brief 根据 dims 去更新自己的 bytes_ 为 needed_size
+    // 
+    // @return Tensor& 
 	Tensor& Tensor::adajust_memory_by_update_dims_or_type(){
 		
 		int needed_size = this->numel() * element_size();
+        // 如果需要的新的字节数 > bytes_
 		if(needed_size > this->bytes_){
+            // 当前数据头赋值 Init
 			head_ = DataHead::Init;
 		}
+        // 正常更新值
 		this->bytes_ = needed_size;
 		return *this;
 	}
 
+    // 流同步到当前要求的显卡上
 	Tensor& Tensor::synchronize(){ 
 		CUDATools::AutoDevice auto_device_exchange(this->device());
 		checkCudaRuntime(cudaStreamSynchronize(stream_));
 		return *this;
 	}
 
+    //@wkx 数据从 GPU 拷贝到 CPU
 	Tensor& Tensor::to_gpu(bool copy) {
 
 		if (head_ == DataHead::Device)
 			return *this;
 
 		head_ = DataHead::Device;
+        // 检验显存是否满足, 如果不满足则申请足够大小显存
 		data_->gpu(bytes_);
 
 		if (copy && data_->cpu() != nullptr) {
@@ -442,6 +524,7 @@ namespace TRT{
 		return *this;
 	}
 	
+    //@wkx 数据从 CPU 拷贝到 GPU
 	Tensor& Tensor::to_cpu(bool copy) {
 
 		if (head_ == DataHead::Host)
