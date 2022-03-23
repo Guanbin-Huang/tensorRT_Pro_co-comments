@@ -24,7 +24,7 @@ namespace DeepSORT {
             aspect_ratio = box.width() / height;
         }
     };
-
+    //! @hito0512 卡方分布表 
     static float chi2inv95_2[] = {
         3.8415f,
         5.9915f,
@@ -419,6 +419,7 @@ namespace DeepSORT {
         
         float std_weight_position_ = 1 / 20.f;
         float std_weight_velocity_ = 1 / 160.f;
+        //* @hito0512: 用来初始化协方差矩阵
         float initiate_state[] = {
             2.0f * std_weight_position_,
             2.0f * std_weight_position_,
@@ -429,14 +430,14 @@ namespace DeepSORT {
             1e-5,
             10.0f * std_weight_velocity_,
         };
-
+        //* @hito0512: 测量噪声
         float noise[] = {
             std_weight_position_,
             std_weight_position_,
             1e-1,
             std_weight_position_
         };
-
+        //* @hito0512: 过程噪声
         float per_frame_motion[] = {
             std_weight_position_,
             std_weight_position_,
@@ -476,11 +477,12 @@ namespace DeepSORT {
         memcpy(this->noise, values.data(), sizeof(this->noise));
     }
 
-    class KalmanFilter
+    class KalmanFilter  //* @hito0512: 卡尔曼方程的标准实现，对照五个公式即可理解。
     {
     public:
         KalmanFilter(const TrackerConfig& config):config_(config) {
             /* 匀速直线运动 */
+            //* @hito0512: 初始化状态转移矩阵
             motion_mat_ = Eigen::Matrix<float, 8, 8>::Identity(8, 8);
             for (int i = 0; i < 4; ++i) {
                 motion_mat_(i, 4 + i) = 1;
@@ -508,8 +510,9 @@ namespace DeepSORT {
                         config_.noise[3] * mean(3, 0);
             std_vel = std_vel.array().pow(2).matrix();
             Eigen::Matrix<float, 4, 4> innovation_cov(std_vel.asDiagonal());
-
+            //* @hito0512: 先验估计(预测值) xn^ = H*xn^
             mean_ret = update_mat_ * mean;
+            //* @hito0512: Pn = H*Pn^*H`+R(测量噪声)  
             covariance_ret = update_mat_ * covariance * update_mat_.transpose() + innovation_cov;
         }
 
@@ -553,7 +556,8 @@ namespace DeepSORT {
 
             return squared_maha;
         }
-
+        
+        //* @hito0512: 1-首先根据状态方程进行预测
         void predict(Eigen::Matrix<float, 8, 1> &mean, 
                     Eigen::Matrix<float, 8, 8> &covariance) {
             Eigen::Matrix<float, 8, 1> std_pos_vel;
@@ -563,7 +567,6 @@ namespace DeepSORT {
             //             std_weight_position_ * mean(3, 0),
             //             1e-2,
             //             std_weight_position_ * mean(3, 0),
-
             //             std_weight_velocity_ * mean(3, 0),
             //             std_weight_velocity_ * mean(3, 0),
             //             1e-5,
@@ -579,10 +582,13 @@ namespace DeepSORT {
             std_pos_vel = std_pos_vel.array().pow(2).matrix();
             Eigen::Matrix<float, 8, 8> motion_cov(std_pos_vel.asDiagonal());
 
+            //* @hito0512: 先验估计：xn^ = A * xn_1,这里做的是匀速运动，所以没有控制矩阵
             mean = motion_mat_ * mean;
+            //* @hito0512: 先验估计协方差：Pn^ = A * Pn_1 * A` + Q(过程噪声)
             covariance = motion_mat_ * covariance * motion_mat_.transpose() + motion_cov;
         }
 
+        //* @hito0512: 2-状态与协方差更新
         void update(const BBoxXYAH &boxah,
                     Eigen::Matrix<float, 8, 1> &mean,
                     Eigen::Matrix<float, 8, 8> &covariance) {
@@ -592,13 +598,16 @@ namespace DeepSORT {
 
             Eigen::Map<Eigen::MatrixXf> cov_map(covariance_ret.data(), covariance_ret.rows(), covariance_ret.cols());
             auto cov_inv = cov_map.inverse();
+            //* @hito0512: 卡尔曼增益 K = Pn^*H`/(H*Pn_1*H`+ R)
             auto kalman_gain = covariance * update_mat_.transpose() * cov_inv;
 
             Eigen::Matrix<float, 4, 1> measure;
             measure << boxah.center_x, boxah.center_y, boxah.aspect_ratio, boxah.height;
+            //* @hito0512: 观测值 - 预测值
             auto innovation = measure - mean_ret;
-            
+            //* @hito0512: 进行状态更新 xn` = xn^ + K(z - H*xn^)
             mean = mean + kalman_gain * innovation;
+            //* @hito0512: 协方差更新 Pn` = Pn^ - K*Hn*Pn^
             covariance = covariance - kalman_gain * update_mat_ * covariance;
         }
 
