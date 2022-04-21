@@ -710,7 +710,7 @@ namespace DeepSORT {
             ++ age_;
             ++ time_since_update_;
         }
-
+        //* @hito0512: 当前状态为等待匹配状态，或者距离上次更新之后未跟新次数大于最大丢失次数则状态改为删除态
         void mark_missed() {
             if (state_ == State::Tentative || time_since_update_ > max_age_) {
                 state_ = State::Deleted;
@@ -725,6 +725,7 @@ namespace DeepSORT {
             }
 
             if(has_feature_){
+                //* @hito0512: 保存的特征数量如果超过设定值，则从头开始保存
                 if(feature_bucket_.rows < nbuckets_){
                     feature_bucket_.push_back(box.feature);
                 }else{
@@ -734,7 +735,7 @@ namespace DeepSORT {
                         feature_cursor_ = 0;
                 }
             }
-
+            //* @hito0512: 把当前box及对应的特征保存，如果保存的数量大于设定的阈值，则把以前的特征丢弃。
             trace_.push_back(box);
             if (trace_.size() > nbuckets_) {
                 trace_.pop_front();
@@ -742,14 +743,14 @@ namespace DeepSORT {
 
             km_filter.update(box, mean_, covariance_);
             last_position_ = box;
-            ++ hits_;
+            ++ hits_;  //* @hito0512: 匹配次数加1
             time_since_update_ = 0;
-
+            //* @hito0512: 当前是等待匹配状态，并且连续匹配次数大于阈值，则状态转为确定态
             if (state_ == State::Tentative && hits_ >= nhit_) {
                 state_ = State::Confirmed;
             }
         }
-
+        //* @hito0512: 保存的特征
         virtual const cv::Mat& feature_bucket() const override{
             return feature_bucket_;
         }
@@ -773,6 +774,7 @@ namespace DeepSORT {
         }
 
     private:
+        //* @hito0512: 距离上次更新之后未更新的次数
         int time_since_update_{0};
         State state_{State::Tentative};
         int age_{1};
@@ -782,9 +784,11 @@ namespace DeepSORT {
         std::deque<Box> trace_;
         cv::Mat feature_bucket_;
         bool has_feature_ = false;
-
+        //* @hito0512: 设置要保存的特征数量
         int nbuckets_ = 100;
+        //* @hito0512: 最大丢失次数
         int max_age_ = 100;
+        //* @hito0512: 连续匹配的次数
         int nhit_ = 3;
 
         Box last_position_;
@@ -814,7 +818,7 @@ namespace DeepSORT {
             }
             return objects_ptr;
         }
-
+        //* @hito0512: 采用kalman进行预测，同时距离上次未跟新次数加1
         void predict() {
             for (auto &obj : objects_) {
                 obj.predict(kalman_);
@@ -822,7 +826,7 @@ namespace DeepSORT {
         }
 
         void update(const BBoxes& boxes) {
-
+            //* @hito0512: 每一个目标分别进行kalman预测
             predict();
 
             int level_max = max_age_;
@@ -856,8 +860,7 @@ namespace DeepSORT {
                     // match
                     match_boxes_index.clear();
                     match_objects_index.clear();
-                    this->match(objects_index, unmatched_boxes_index, boxes, 
-                                match_boxes_index, match_objects_index);
+                    this->match(objects_index, unmatched_boxes_index, boxes, match_boxes_index, match_objects_index);
 
                     // unmatch boxes index
                     std::set<int> match_boxes_set(match_boxes_index.begin(), match_boxes_index.end());
@@ -905,6 +908,7 @@ namespace DeepSORT {
                 const std::vector<Box> &boxes,
                 std::vector<int> &match_boxes_index,
                 std::vector<int> &match_objects_index) {
+            //* @hito0512: 代价矩阵，每一个检测结果与每一个预测结果。
             std::vector<std::vector<double>> cost_matrix_data;
             for (auto obj_idx : objects_index) {
                 std::vector<double> cost_matrix_item;
@@ -919,16 +923,19 @@ namespace DeepSORT {
                     );
 
                     double cost_data = 0;
+                    //* @hito0512: 阈值来自4个自由度的卡方分布
                     if (maha_distance > chi2inv95_2[3]) {
-                        cost_data = 1e5;
+                        cost_data = 1e5;  //* @hito0512: 马上距离过大
                     }
                     else {
                         if(has_feature_){
+                            //* @hito0512: 已经存储的特征和当前检测到的特征进行计算。
                             cv::Mat scores   = TrackObject.feature_bucket() * box.feature.t();
                             double max_score = 0;
                             cv::minMaxLoc(scores, nullptr, &max_score);
                             cost_data = 1 - max_score;
                         }else{
+                            //* @hito0512: 计算当前box与上一次位置之间的距离
                             cost_data = distance(TrackObject.last_position(), box);
                         }
                     }
@@ -936,7 +943,7 @@ namespace DeepSORT {
                 }
                 cost_matrix_data.push_back(cost_matrix_item);
             }
-
+            //* @hito0512: 匈牙利进行匹配
             HungarianAlgorithm HungAlgo;
             std::vector<int> assignment;
             double cost = HungAlgo.Solve(cost_matrix_data, assignment);
@@ -945,6 +952,7 @@ namespace DeepSORT {
                 if (assignment[i] < 0) {
                     continue;
                 }
+                //* @hito0512: 代价矩阵：纵向是kalman预测结果，横向是目标检测结果
                 int obj_index = objects_index[i];
                 int box_index = boxes_index[assignment[i]];
                 if (cost_matrix_data[i][assignment[i]] < distance_threshold_) {
@@ -953,7 +961,7 @@ namespace DeepSORT {
                 }
             }
         }
-
+        //* @hito0512: 新建跟踪目标
         void new_object(const Box &box) {
             Eigen::Matrix<float, 8, 1> mean;
             Eigen::Matrix<float, 8, 8> covariance;
@@ -981,9 +989,7 @@ namespace DeepSORT {
             return nullptr;
         }
 
-        std::shared_ptr<TrackerImpl> tracker_ptr(new TrackerImpl(
-            config
-        ));
+        std::shared_ptr<TrackerImpl> tracker_ptr(new TrackerImpl(config));
         return tracker_ptr;
     }
 };
