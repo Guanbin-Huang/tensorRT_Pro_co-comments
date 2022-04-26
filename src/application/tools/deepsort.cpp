@@ -832,9 +832,11 @@ namespace DeepSORT {
             int level_max = max_age_;
             State states[2] = {State::Confirmed, State::Tentative};
             std::vector<int> unmatched_boxes_index, unmatched_objects_index;
+            //* @hito0512: 所有的检测结果首先都先加入到未匹配box中去，然后进行筛选
             for (int i = 0; i < boxes.size(); ++i) {
                 unmatched_boxes_index.push_back(i);
             }
+            //* @hito0512: 所有的kalman预测结果首先都先加入到未匹配的object中去，然后进行筛选。
             for (int i = 0; i < objects_.size(); ++i) {
                 unmatched_objects_index.push_back(i);
             }
@@ -916,7 +918,7 @@ namespace DeepSORT {
                     auto &TrackObject = objects_[obj_idx];
                     auto &box = boxes[box_idx];
                     BBoxXYAH boxah(box);
-
+                    //* @hito0512: 
                     auto maha_distance = kalman_.ma_distance(
                         TrackObject.get_mean(), TrackObject.get_covariance(),
                         boxah, false
@@ -932,7 +934,7 @@ namespace DeepSORT {
                             //* @hito0512: 已经存储的特征和当前检测到的特征进行计算。
                             cv::Mat scores   = TrackObject.feature_bucket() * box.feature.t();
                             double max_score = 0;
-                            cv::minMaxLoc(scores, nullptr, &max_score);
+                            cv::minMaxLoc(scores, nullptr, &max_score);  //* @hito0512: 找到最大值
                             cost_data = 1 - max_score;
                         }else{
                             //* @hito0512: 计算当前box与上一次位置之间的距离

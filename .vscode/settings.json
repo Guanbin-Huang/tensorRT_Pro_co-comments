@@ -116,5 +116,6 @@
         "xtree": "cpp",
         "xutility": "cpp"
     },
-    "workbench.tree.expandMode": "doubleClick"
+    "workbench.tree.expandMode": "doubleClick",
+    "cmake.configureOnOpen": false
 }
