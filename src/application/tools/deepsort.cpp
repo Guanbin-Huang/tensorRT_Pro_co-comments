@@ -861,10 +861,10 @@ namespace DeepSORT {
 
                     // match
                     match_boxes_index.clear();
-                    match_objects_index.clear();
+                    match_objects_index.clear();//* @hito0512: 筛选出匹配的检测索引和预测索引
                     this->match(objects_index, unmatched_boxes_index, boxes, match_boxes_index, match_objects_index);
 
-                    // unmatch boxes index
+                    // unmatch boxes index  //* @hito0512: 得到未匹配的检测索引
                     std::set<int> match_boxes_set(match_boxes_index.begin(), match_boxes_index.end());
                     std::set<int> unmatched_boxes_set(unmatched_boxes_index.begin(), unmatched_boxes_index.end());
                     unmatched_boxes_index.clear();
@@ -874,7 +874,7 @@ namespace DeepSORT {
                         std::back_inserter(unmatched_boxes_index)
                     );
 
-                    // unmatched_objects_index
+                    // unmatched_objects_index   ///* @hito0512: 得到未匹配的预测索引
                     std::set<int> unmatched_objects_set(unmatched_objects_index.begin(), unmatched_objects_index.end());
                     std::set<int> match_objects_set(match_objects_index.begin(), match_objects_index.end());
                     unmatched_objects_index.clear();
@@ -884,20 +884,22 @@ namespace DeepSORT {
                         std::back_inserter(unmatched_objects_index)
                     );
 
-                    // update
+                    // update 
                     int count = std::min<int>(match_objects_index.size(), match_boxes_index.size());
                     for (int i = 0; i < count; ++i) {
                         objects_[match_objects_index[i]].update(kalman_, boxes[match_boxes_index[i]]);
                     }
                 }
             }
-
+            //* @hito0512: 未匹配的预测结果进行删除
             for (auto index : unmatched_objects_index) {
                 objects_[index].mark_missed();
             }
+            //* @hito0512: 未匹配的检测结果新建跟踪器
             for (auto index : unmatched_boxes_index) {
                 this->new_object(boxes[index]);
             }
+            //* @hito0512: 预测结果进行过滤，只保留不是删除态的结果。
             std::vector<TrackObjectImpl> objects_tmp;
             std::copy_if(objects_.begin(), objects_.end(), std::back_inserter(objects_tmp),
                         [](const TrackObject &obj){return obj.state() != State::Deleted;}
