@@ -3,6 +3,7 @@
     "editor.suggest.snippetsPreventQuickSuggestions": false,
     "python.languageServer": "Jedi",
     "files.associations": {
+        "*.h": "cpp",
         "*.cpp": "cpp",
         "*.cu": "cpp",
         "*.cuh": "cpp",
@@ -114,8 +115,10 @@
         "xstring": "cpp",
         "xtr1common": "cpp",
         "xtree": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "coroutine": "cpp",
+        "resumable": "cpp"
     },
-    "workbench.tree.expandMode": "doubleClick",
+    // "workbench.tree.expandMode": "doubleClick",
     "cmake.configureOnOpen": false
 }

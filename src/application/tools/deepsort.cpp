@@ -43,6 +43,7 @@ namespace DeepSORT {
         return hypot(center.x - center2.x, center.y - center2.y);
     }
 
+    //* @hito0512: 匈牙利进行匹配
     class HungarianAlgorithm
     {
     public:
@@ -413,8 +414,8 @@ namespace DeepSORT {
             step3(assignment, distMatrix, starMatrix, newStarMatrix, primeMatrix, coveredColumns, coveredRows, nOfRows, nOfColumns, minDim);
         }
     };
-
-
+    
+    /*- 默认kalman初始化的相关配置 */
     TrackerConfig::TrackerConfig(){
         
         float std_weight_position_ = 1 / 20.f;
@@ -801,7 +802,7 @@ namespace DeepSORT {
     public:
         TrackerImpl(const TrackerConfig& config)
         :kalman_(config), 
-        distance_threshold_(config.distance_threshold), 
+        distance_threshold_(config.distance_threshold), /*- 小于该距离则匹配上 */
         nbuckets_(config.nbuckets), 
         max_age_(config.max_age), 
         nhit_(config.nhit), 
@@ -826,25 +827,27 @@ namespace DeepSORT {
         }
 
         void update(const BBoxes& boxes) {
-            //* @hito0512: 每一个目标分别进行kalman预测
+            //* @hito0512: 每一个跟踪器分别进行kalman预测
             predict();
 
-            int level_max = max_age_;
+            int level_max = max_age_;   /*- 最大保留次数 */
             State states[2] = {State::Confirmed, State::Tentative};
             std::vector<int> unmatched_boxes_index, unmatched_objects_index;
             //* @hito0512: 所有的检测结果首先都先加入到未匹配box中去，然后进行筛选
             for (int i = 0; i < boxes.size(); ++i) {
                 unmatched_boxes_index.push_back(i);
             }
-            //* @hito0512: 所有的kalman预测结果首先都先加入到未匹配的object中去，然后进行筛选。
+            //* @hito0512: 所有的kalman预测结果首先都先加入到未匹配的object中去，然后进行筛选。【跟踪器】
             for (int i = 0; i < objects_.size(); ++i) {
                 unmatched_objects_index.push_back(i);
             }
 
             std::vector<int> match_boxes_index;
             std::vector<int> match_objects_index;
-            for (auto state : states) {
-                for (int level = 0; level < level_max; ++level) {
+            for (auto state : states) 
+            {
+                for (int level = 0; level < level_max; ++level) { 
+                    /*- 如果检测结果为空或者没有跟踪器 则不进行后续处理 */
                     if (unmatched_boxes_index.size() == 0 || unmatched_objects_index.size() == 0) {
                         break;
                     }
@@ -861,20 +864,20 @@ namespace DeepSORT {
 
                     // match
                     match_boxes_index.clear();
-                    match_objects_index.clear();//* @hito0512: 筛选出匹配的检测索引和预测索引
+                    match_objects_index.clear();//* @hito0512: 筛选出匹配的检测索引和跟踪器索引
                     this->match(objects_index, unmatched_boxes_index, boxes, match_boxes_index, match_objects_index);
 
                     // unmatch boxes index  //* @hito0512: 得到未匹配的检测索引
                     std::set<int> match_boxes_set(match_boxes_index.begin(), match_boxes_index.end());
                     std::set<int> unmatched_boxes_set(unmatched_boxes_index.begin(), unmatched_boxes_index.end());
                     unmatched_boxes_index.clear();
-                    std::set_symmetric_difference(
+                    std::set_symmetric_difference(  //*- 找两个集合的差集，去除共有元素后的集合 */
                         match_boxes_set.begin(), match_boxes_set.end(),
                         unmatched_boxes_set.begin(), unmatched_boxes_set.end(),
                         std::back_inserter(unmatched_boxes_index)
                     );
 
-                    // unmatched_objects_index   ///* @hito0512: 得到未匹配的预测索引
+                    // unmatched_objects_index   ///* @hito0512: 得到未匹配的跟踪器索引
                     std::set<int> unmatched_objects_set(unmatched_objects_index.begin(), unmatched_objects_index.end());
                     std::set<int> match_objects_set(match_objects_index.begin(), match_objects_index.end());
                     unmatched_objects_index.clear();
@@ -884,22 +887,22 @@ namespace DeepSORT {
                         std::back_inserter(unmatched_objects_index)
                     );
 
-                    // update 
+                    // update 每个跟踪器进行kalman更新
                     int count = std::min<int>(match_objects_index.size(), match_boxes_index.size());
                     for (int i = 0; i < count; ++i) {
                         objects_[match_objects_index[i]].update(kalman_, boxes[match_boxes_index[i]]);
                     }
                 }
             }
-            //* @hito0512: 未匹配的预测结果进行删除
+            //* @hito0512: 未匹配的跟踪器进行删除
             for (auto index : unmatched_objects_index) {
                 objects_[index].mark_missed();
             }
-            //* @hito0512: 未匹配的检测结果新建跟踪器
+            //* @hito0512: 未匹配的检测结果【新建跟踪器】
             for (auto index : unmatched_boxes_index) {
                 this->new_object(boxes[index]);
             }
-            //* @hito0512: 预测结果进行过滤，只保留不是删除态的结果。
+            //* @hito0512: 跟踪器进行过滤，只保留不是删除态的跟踪器。
             std::vector<TrackObjectImpl> objects_tmp;
             std::copy_if(objects_.begin(), objects_.end(), std::back_inserter(objects_tmp),
                         [](const TrackObject &obj){return obj.state() != State::Deleted;}
@@ -908,10 +911,8 @@ namespace DeepSORT {
         }
 
         void match(const std::vector<int> &objects_index, 
-                const std::vector<int> &boxes_index, 
-                const std::vector<Box> &boxes,
-                std::vector<int> &match_boxes_index,
-                std::vector<int> &match_objects_index) {
+                const std::vector<int> &boxes_index, const std::vector<Box> &boxes,
+                std::vector<int> &match_boxes_index,std::vector<int> &match_objects_index) {
             //* @hito0512: 代价矩阵，每一个检测结果与每一个预测结果。
             std::vector<std::vector<double>> cost_matrix_data;
             for (auto obj_idx : objects_index) {
@@ -921,10 +922,7 @@ namespace DeepSORT {
                     auto &box = boxes[box_idx];
                     BBoxXYAH boxah(box);
                     //* @hito0512: 
-                    auto maha_distance = kalman_.ma_distance(
-                        TrackObject.get_mean(), TrackObject.get_covariance(),
-                        boxah, false
-                    );
+                    auto maha_distance = kalman_.ma_distance(TrackObject.get_mean(), TrackObject.get_covariance(),boxah, false);
 
                     double cost_data = 0;
                     //* @hito0512: 阈值来自4个自由度的卡方分布
@@ -987,7 +985,6 @@ namespace DeepSORT {
     };
 
     std::shared_ptr<Tracker> create_tracker(const TrackerConfig& config) {
-
         if(config.has_feature && config.nbuckets < 1 || config.max_age < 1 || config.nhit < 1){
             printf("Invalid argument has_feature = %s, nbuckets = %d, max_age = %d, nhit = %d\n", config.has_feature ? "True":"False", config.nbuckets, config.max_age, config.nhit);
             return nullptr;
