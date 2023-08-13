@@ -10,7 +10,7 @@ namespace DeepSORT {
 
 struct Box{
     float left, top, right, bottom;
-    cv::Mat feature;
+    cv::Mat feature;   /*- reid 特征 */
 
     Box() = default;
     Box(float left, float top, float right, float bottom):left(left), top(top), right(right), bottom(bottom){}
@@ -82,8 +82,7 @@ public:
     virtual void update(const BBoxes& boxes) = 0;
 };
 
-std::shared_ptr<Tracker> create_tracker(
-    const TrackerConfig& config = TrackerConfig()
+std::shared_ptr<Tracker> create_tracker(const TrackerConfig& config = TrackerConfig()
 );
 
 }
